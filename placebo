@@ -1,4 +1,4 @@
-if ! echo $PILL | grep -q "(playback|record)" ; then
+if [ -z $PILL ] ; then
   echo "PILL must be set to playback or record"
   return 1
 fi
@@ -69,3 +69,5 @@ aws() {
     ;;
   esac
 }
+
+# vim: ft=sh
