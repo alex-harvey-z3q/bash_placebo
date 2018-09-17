@@ -3,6 +3,17 @@ if [ -z $PILL ] ; then
   return 1
 fi
 
+# These functions are provided for UX consistency
+# with the Python Placebo library.
+
+pill_playback() {
+  PILL=playback
+}
+
+pill_record() {
+  PILL=record
+}
+
 if [ -z $DATA_PATH ] ; then
   echo "DATA_PATH must be set"
   return 1
@@ -58,7 +69,7 @@ aws() {
   eval "(( ${var_name}++ ))"
   eval 'local counter=$'"$var_name"
 
-  data_file=${DATA_PATH}/${com}.${sub}.${counter}
+  data_file="${DATA_PATH}/${com}.${sub}.${counter}.sh"
 
   case "$PILL" in
   "playback")

@@ -5,6 +5,9 @@ setUp() {
 }
 
 tearDown() {
+  rm -f /tmp/aws
+  rm -f $DATA_PATH/ec2.run-instances.1.sh
+  rm -f expected_content
   unset PILL
   unset DATA_PATH
 }
@@ -21,6 +24,8 @@ testRecord() {
   PILL=record
   . placebo
 
+  response_file="$DATA_PATH/ec2.run-instances.1.sh"
+
   OLDPATH=$PATH
   PATH=/tmp:$PATH
   echo "echo foo" > /tmp/aws ; chmod +x /tmp/aws
@@ -36,15 +41,17 @@ esac
 EOD
 
   assertEquals "" \
-    "$(diff -wu expected_content $DATA_PATH/ec2.run-instances.1)"
+    "$(diff -wu expected_content $response_file)"
 
-  rm -f /tmp/aws "$DATA_PATH/ec2.run-instances.1" expected_content
+  rm -f /tmp/aws $response_file  expected_content
   PATH=$OLDPATH
 }
 
 testPillNotSet() {
+  unset PILL
   response=$(. placebo)
-  assertEquals "PILL must be set to playback or record" "$response"
+  assertEquals \
+    "PILL must be set to playback or record" "$response"
 }
 
 . shunit2
