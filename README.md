@@ -1,5 +1,7 @@
 # Placebo for Bash
 
+[![Build Status](https://img.shields.io/travis/alexharv074/bash_placebo.svg)](https://travis-ci.org/alexharv074/bash_placebo)
+
 The Bash Placebo library is inspired by Mitch Garnaat's Python [library](https://github.com/garnaat/placebo) of the same name.
 
 It allows you to call AWS CLI commands and retrieve responses that look like real AWS CLI responses from a file-based data store. This allows you to unit test your AWS CLI shell scripts without needing to hit the real AWS.
