@@ -1,32 +1,33 @@
 # Placebo for Bash
 
-The Bash Placebo library is inspired by the Python [library](https://github.com/garnaat/placebo) of the same name by Mitch Garnaat.
+The Bash Placebo library is inspired by Mitch Garnaat's Python [library](https://github.com/garnaat/placebo) of the same name.
 
-It allows you to call the AWS CLI commands and retrieve responses that look like real AWS CLI responses that come from a data store. This allows you to unit test your AWS CLI shell scripts without needing to hit the AWS.
+It allows you to call AWS CLI commands and retrieve responses that look like real AWS CLI responses from a file-based data store. This allows you to unit test your AWS CLI shell scripts without needing to hit the real AWS.
 
 ## Installation
 
 For now, the tool is installed just by copying the script from the master branch into your path somewhere. E.g.
 
 ~~~ text
-$ curl https://raw.githubusercontent.com/alexharv074/bash_placebo/master/placebo -o /usr/local/bin/placebo
+$ curl -o /usr/local/bin/placebo \
+    https://raw.githubusercontent.com/alexharv074/bash_placebo/master/placebo
 ~~~
 
 ## Quickstart
 
-Using record mode to generate fake responses in the shunit2/fixtures directory:
+Use record mode to generate fake responses in a file shunit2/fixtures/aws.sh:
 
 ~~~ bash
 . placebo
-pill_attach aws shunit2/fixtures
+pill_attach aws=/usr/local/bin/aws data_path=shunit2/fixtures/aws.sh
 pill_record
 ~~~
 
-Reading these responses back in your unit tests:
+Read these responses back in your unit tests:
 
 ~~~ bash
 . placebo
-pill_attach aws shunit2/fixtures
+pill_attach aws=/usr/local/bin/aws data_path=shunit2/fixtures/aws.sh
 pill_playback
 ~~~
 
@@ -34,25 +35,43 @@ A working example of tests in the shunit2 framework that uses this library can b
 
 ## Manual mocking
 
-If you want to create fake responses to be read back in manually, they are very simple.
-
-1. Ensure that the file is named `command.subcommand.n`. Placebo reads in the nth file each time the aws _command subcommand_ command is called. This is also how the Python library works.
-2. The file should contain a case statement like:
+If you want to create fake responses to be read back in manually, they are very simple. For example:
 
 ~~~ bash
 case "aws $*" in
-'aws command subcommand other args')
+'aws command subcommand some args')
   echo some_response
+  ;;
+'aws command subcommand some other args')
+  echo some_other_response
   ;;
 esac
 ~~~
 
+## Spy mode
+
+Pass `-spy` to `pill_attach` if you would like a `commands_log` file to be created that allows you to "spy" on the AWS CLI commands called:
+
+~~~ bash
+. placebo
+pill_attach aws=/usr/local/bin/aws data_path=shunit2/fixtures/aws.sh -spy
+pill_record
+~~~
+
+Note that it is then up to you to clean up the `commands_log` file in your tests:
+
+~~~ bash
+tearDown() {
+  rm -f commands_log
+}
+~~~
+
 ## Contributing
 
-Run the tests:
+PRs are welcome. To run the tests:
 
 ~~~ text
 $ bash shunit2/placebo.sh
 ~~~
 
-Feedback is welcome and support is available.
+Support is available so feel free to raise issues.
