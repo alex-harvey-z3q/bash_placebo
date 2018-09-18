@@ -1,6 +1,6 @@
 ---
 language: bash
-before_script: "curl -o /usr/local/bin/shunit2 https://raw.githubusercontent.com/kward/shunit2/master/shunit2"
+before_script: "curl -o /bin/shunit2 https://raw.githubusercontent.com/kward/shunit2/master/shunit2"
 script: "bash shunit2/placebo.sh"
 notifications:
   email: false
