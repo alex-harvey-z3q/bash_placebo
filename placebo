@@ -1,19 +1,27 @@
 usage() {
-  echo "Usage: . $0 [-h]"
+  case $1 in
+  "main")
+    echo "Usage: . $0 [-h]"
+    ;;
+  "attach")
+    echo "Usage: \
+pill_attach aws data_path=path/to/responses"
+    ;;
+  esac
   return 1
 }
-[ "$1" == "-h" ] && usage
-
-attach_usage() {
-  cat <<EOF
-Usage: pill_attach aws data_path=path/to/responses
-EOF
-  return 1
-}
+[ "$1" == "-h" ] && usage main
 
 pill_attach() {
-  echo $2 | grep -q = || attach_usage
-  DATA_PATH=$(echo $2 | cut -f2 -d=)
+
+  # $1 is a placeholder. It is here to provide
+  # consistency with Python Placebo, and also
+  # allows possible expansion to work with
+  # other tools aside from AWS CLI.
+  #
+  [[ "$1" =~ ^aws= ]] || usage attach
+  echo "$2" | grep -q = || usage attach
+  DATA_PATH=$(echo "$2" | cut -f2 -d=)
 }
 
 pill_playback() {
@@ -49,23 +57,24 @@ filter() {
 }
 
 record() {
-  local f=$1
-  local com=$2
-  local sub=$3
+  local f com sub
+  read f com sub <<< "$1 $2 $3"
   shift ; shift ; shift
 
   [ -e $f ] && \
     update_existing $f || \
     create_new $f
 
+  # open another case.
   cat <<EOD | filter >> $f
 'aws $com $sub $*')
   cat <<'EOF'
 EOD
 
-  command aws $com $sub $* | \
-    tee -a $f
+  # insert response data.
+  command aws $com $sub $* | tee -a $f
 
+  # close the case and the block.
   cat >> $f <<EOD
 EOF
   ;;
@@ -88,14 +97,15 @@ aws() {
     return 1
   fi
 
-  if [ "$PILL" == "playback" ] && [ -z $DATA_PATH ] ; then
-    echo "Response file in DATA_PATH not found"
+  if [ -z $DATA_PATH -a "$PILL" == "playback" ] ; then
+    echo "DATA_PATH not found. Use pill_record to record one"
     return 1
   fi
 
   mkdir -p $(dirname $DATA_PATH)
 
   echo "aws $com $sub $*" | filter >> commands_log
+
   case "$PILL" in
   "playback")
     source $DATA_PATH $com $sub $*

@@ -2,7 +2,7 @@
 
 setUp() {
   . placebo
-  pill_attach /usr/local/bin/aws "data_path=shunit2/fixtures/aws.sh"
+  pill_attach "aws=/usr/local/bin/aws" "data_path=shunit2/fixtures/aws.sh"
 }
 
 tearDown() {
@@ -21,7 +21,7 @@ testPlayback() {
 }
 
 testRecord() {
-  pill_attach /usr/local/bin/aws "data_path=shunit2/fixtures/test.sh"
+  pill_attach "aws=/usr/local/bin/aws" "data_path=shunit2/fixtures/test.sh"
   pill_record
 
   OLDPATH=$PATH
@@ -50,7 +50,7 @@ EOD
 }
 
 testRecordShortCommand() {
-  pill_attach /usr/local/bin/aws "data_path=shunit2/fixtures/test.sh"
+  pill_attach "aws=/usr/local/bin/aws" "data_path=shunit2/fixtures/test.sh"
   pill_record
 
   OLDPATH=$PATH
