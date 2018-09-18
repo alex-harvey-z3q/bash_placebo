@@ -35,6 +35,28 @@ pill_playback
 
 A working example of tests in the shunit2 framework that uses this library can be found [here](https://github.com/alexharv074/shunit2_example).
 
+## Recording responses
+
+Recording the responses you need to test the AWS CLI shell script you are working on is easy.
+
+From the CLI, try:
+
+~~~ text
+$ . placebo
+$ pill_attach aws=/usr/local/bin/aws data_path=shunit2/fixtures/aws.sh
+$ pill_record
+~~~
+
+The first line includes the Placebo functions in the running shell, including the modified AWS CLI function. Then we tell Placebo where to save the responses, and then set it to record mode.
+
+Next, we source the script under test into the running shell too:
+
+~~~ text
+$ . script_under_test some_arg some_other_arg
+~~~
+
+The script will appear to run as normal, but afterwards the responses from its calls to aws cli can be found in `shunit2/fixtures/aws.sh`.
+
 ## Manual mocking
 
 If you want to create fake responses to be read back in manually, they are very simple. For example:
@@ -51,7 +73,6 @@ esac
 ~~~
 
 ## Spies and cleanup
-
 A log of all commands can be obtained using the `pill_log` function so that you can "spy" on the AWS CLI commands called. It is then up to you to clean up the log by calling `pill_cleanup`:
 
 ~~~ bash
