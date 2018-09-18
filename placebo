@@ -75,6 +75,11 @@ aws() {
     return 1
   fi
 
+  if [ "$PILL" == "playback" ] && [ -z $DATA_PATH ] ; then
+    echo "Response file in DATA_PATH not found"
+    return 1
+  fi
+
   mkdir -p $(dirname $DATA_PATH)
 
   [ "$SPY" == true ] && \
