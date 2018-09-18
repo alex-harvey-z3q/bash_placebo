@@ -52,9 +52,7 @@ esac
 
 ## Spies and cleanup
 
-A log of all commands can be obtained using the `pill_log` function so that you can "spy" on the AWS CLI commands called:
-
-Note that it is then up to you to clean up the `commands_log` file in your tests:
+A log of all commands can be obtained using the `pill_log` function so that you can "spy" on the AWS CLI commands called. It is then up to you to clean up the log by calling `pill_cleanup`:
 
 ~~~ bash
 testCommandsLogged() {
