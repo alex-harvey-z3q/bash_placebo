@@ -5,8 +5,9 @@ usage() {
 [ "$1" == "-h" ] && usage
 
 attach_usage() {
-  echo "Usage: pill_attach aws data_path=DATA_PATH [-spy]"
-  echo "e.g. pill_attach aws data_path=shunit2/fixtures/aws.sh -spy"
+  cat <<EOF
+Usage: pill_attach aws data_path=path/to/responses
+EOF
   return 1
 }
 
@@ -44,7 +45,7 @@ update_existing() {
 
 filter() {
   sed -e 's/  *$//' \
-      -e "s/  *'/'/"
+      -e "s/  *\'/'/"
 }
 
 record() {

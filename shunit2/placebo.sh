@@ -49,6 +49,32 @@ EOD
   PATH=$OLDPATH
 }
 
+testRecordShortCommand() {
+  pill_attach /usr/local/bin/aws "data_path=shunit2/fixtures/test.sh"
+  pill_record
+
+  OLDPATH=$PATH
+  PATH=/tmp:$PATH
+
+  echo "echo foo" > /tmp/aws ; chmod +x /tmp/aws
+
+  command_to_run="aws help"
+  $command_to_run > /dev/null
+  cat > expected_content <<EOD
+case "aws \$*" in
+'$command_to_run')
+  cat <<'EOF'
+foo
+EOF
+  ;;
+esac
+EOD
+
+  assertEquals "" "$(diff -wu expected_content $DATA_PATH)"
+
+  PATH=$OLDPATH
+}
+
 testPillNotSet() {
   unset PILL
   response=$(aws ec2 run-instances)
