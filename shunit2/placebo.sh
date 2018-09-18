@@ -1,38 +1,39 @@
 #!/usr/bin/env bash
 
 setUp() {
-  DATA_PATH=shunit2/fixtures
+  . placebo
+  pill_attach /usr/local/bin/aws "data_path=shunit2/fixtures/aws.sh"
 }
 
 tearDown() {
   rm -f /tmp/aws
-  rm -f $DATA_PATH/ec2.run-instances.1.sh
+  rm -f "shunit2/fixtures/test.sh"
   rm -f expected_content
+  rm -f commands_log
   unset PILL
   unset DATA_PATH
 }
 
 testPlayback() {
-  PILL=playback
-  . placebo
-  aws autoscaling describe-auto-scaling-groups > /dev/null
-  response2=$(aws autoscaling describe-auto-scaling-groups)
-  assertEquals "response 2" "$response2"
+  pill_playback
+  response=$(aws autoscaling describe-auto-scaling-groups)
+  assertEquals "response" "$response"
 }
 
 testRecord() {
-  PILL=record
-  . placebo
-
-  response_file="$DATA_PATH/ec2.run-instances.1.sh"
+  pill_attach /usr/local/bin/aws "data_path=shunit2/fixtures/test.sh" -spy
+  pill_record
 
   OLDPATH=$PATH
   PATH=/tmp:$PATH
+
   echo "echo foo" > /tmp/aws ; chmod +x /tmp/aws
-  aws ec2 run-instances > /dev/null
-  cat > expected_content <<'EOD'
-case "aws $*" in
-"aws $*")
+
+  command_to_run="aws ec2 run-instances --image-id foo"
+  $command_to_run > /dev/null
+  cat > expected_content <<EOD
+case "aws \$*" in
+'$command_to_run')
   cat <<'EOF'
 foo
 EOF
@@ -40,18 +41,28 @@ EOF
 esac
 EOD
 
-  assertEquals "" \
-    "$(diff -wu expected_content $response_file)"
+  assertEquals "" "$(diff -wu expected_content $DATA_PATH)"
+  assertEquals "foo" "$(/tmp/$command_to_run)"
+  assertEquals "$SPY" "true"
+  assertTrue "[ -f commands_log ]"
+  assertEquals "$command_to_run" "$(<commands_log)"
 
-  rm -f /tmp/aws $response_file  expected_content
   PATH=$OLDPATH
 }
 
 testPillNotSet() {
   unset PILL
-  response=$(. placebo)
+  response=$(aws ec2 run-instances)
   assertEquals \
     "PILL must be set to playback or record" "$response"
+}
+
+testDataPathNotSet() {
+  pill_playback
+  unset DATA_PATH
+  response=$(aws ec2 run-instances)
+  assertEquals \
+    "DATA_PATH must be set" "$response"
 }
 
 . shunit2
