@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2086,SC2015,SC2166,SC1090
+
 usage() {
   case $1 in
   "main")
@@ -53,12 +56,12 @@ update_existing() {
 
 filter() {
   sed -e 's/  *$//' \
-      -e "s/  *\'/'/"
+      -e "s/  *'/'/"
 }
 
 record() {
   local f com sub
-  read f com sub <<< "$1 $2 $3"
+  read -r f com sub <<< "$1 $2 $3"
   shift ; shift ; shift
 
   [ -e $f ] && \
@@ -67,12 +70,12 @@ record() {
 
   # open another case.
   cat <<EOD | filter >> $f
-'aws $com $sub $*')
+'aws $com $sub $@')
   cat <<'EOF'
 EOD
 
   # insert response data.
-  command aws $com $sub $* | tee -a $f
+  command aws $com $sub "$@" | tee -a $f
 
   # close the case and the block.
   cat >> $f <<EOD
@@ -102,16 +105,16 @@ aws() {
     return 1
   fi
 
-  mkdir -p $(dirname $DATA_PATH)
+  mkdir -p "$(dirname $DATA_PATH)"
 
   echo "aws $com $sub $*" | filter >> commands_log
 
   case "$PILL" in
   "playback")
-    source $DATA_PATH $com $sub $*
+    source $DATA_PATH $com $sub "$@"
     ;;
   "record")
-    record $DATA_PATH $com $sub $*
+    record $DATA_PATH $com $sub "$@"
     ;;
   esac
 }
