@@ -9,7 +9,7 @@ tearDown() {
   rm -f /tmp/aws
   rm -f "shunit2/fixtures/test.sh"
   rm -f expected_content
-  rm -f commands_log
+  pill_cleanup
   unset PILL
   unset DATA_PATH
 }
@@ -21,7 +21,7 @@ testPlayback() {
 }
 
 testRecord() {
-  pill_attach /usr/local/bin/aws "data_path=shunit2/fixtures/test.sh" -spy
+  pill_attach /usr/local/bin/aws "data_path=shunit2/fixtures/test.sh"
   pill_record
 
   OLDPATH=$PATH
@@ -43,9 +43,8 @@ EOD
 
   assertEquals "" "$(diff -wu expected_content $DATA_PATH)"
   assertEquals "foo" "$(/tmp/$command_to_run)"
-  assertEquals "$SPY" "true"
   assertTrue "[ -f commands_log ]"
-  assertEquals "$command_to_run" "$(<commands_log)"
+  assertEquals "$command_to_run" "$(pill_log)"
 
   PATH=$OLDPATH
 }

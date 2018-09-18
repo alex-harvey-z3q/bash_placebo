@@ -48,21 +48,20 @@ case "aws $*" in
 esac
 ~~~
 
-## Spy mode
+## Spies and cleanup
 
-Pass `-spy` to `pill_attach` if you would like a `commands_log` file to be created that allows you to "spy" on the AWS CLI commands called:
-
-~~~ bash
-. placebo
-pill_attach aws=/usr/local/bin/aws data_path=shunit2/fixtures/aws.sh -spy
-pill_record
-~~~
+A log of all commands can be obtained using the `pill_log` function so that you can "spy" on the AWS CLI commands called:
 
 Note that it is then up to you to clean up the `commands_log` file in your tests:
 
 ~~~ bash
+testCommandsLogged() {
+  . $script_under_test
+  assertEquals "$(<expected_log)" "$(pill_log)"
+}
+
 tearDown() {
-  rm -f commands_log
+  pill_cleanup
 }
 ~~~
 

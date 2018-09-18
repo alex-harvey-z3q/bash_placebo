@@ -13,7 +13,6 @@ attach_usage() {
 pill_attach() {
   echo $2 | grep -q = || attach_usage
   DATA_PATH=$(echo $2 | cut -f2 -d=)
-  [ "$3" == "-spy" ] && SPY=true || SPY=false
 }
 
 pill_playback() {
@@ -22,6 +21,14 @@ pill_playback() {
 
 pill_record() {
   PILL=record
+}
+
+pill_log() {
+  [ -f commands_log ] && cat commands_log
+}
+
+pill_cleanup() {
+  rm -f commands_log
 }
 
 create_new() {
@@ -35,6 +42,11 @@ update_existing() {
   mv $f.bak $f
 }
 
+filter() {
+  sed -e 's/  *$//' \
+      -e "s/  *'/'/"
+}
+
 record() {
   local f=$1
   local com=$2
@@ -45,7 +57,7 @@ record() {
     update_existing $f || \
     create_new $f
 
-  cat >> $f <<EOD
+  cat <<EOD | filter >> $f
 'aws $com $sub $*')
   cat <<'EOF'
 EOD
@@ -53,7 +65,7 @@ EOD
   command aws $com $sub $* | \
     tee -a $f
 
-  cat >> $f <<'EOD'
+  cat >> $f <<EOD
 EOF
   ;;
 esac
@@ -82,9 +94,7 @@ aws() {
 
   mkdir -p $(dirname $DATA_PATH)
 
-  [ "$SPY" == true ] && \
-    echo "aws $com $sub $*" >> commands_log
-
+  echo "aws $com $sub $*" | filter >> commands_log
   case "$PILL" in
   "playback")
     source $DATA_PATH $com $sub $*
