@@ -105,4 +105,25 @@ testExecutePlacebo() {
   assertTrue "echo $response | grep -q ^Usage"
 }
 
+testDetach() {
+  funcs="usage
+pill_attach
+pill_playback
+pill_record
+pill_log
+pill_detach
+create_new
+update_existing
+filter
+record"
+  . placebo
+  pill_detach
+  for f in $funcs ; do
+    assertFalse "function $f is still defined" "type $f"
+  done
+  assertTrue "[ -z $PILL ]"
+  assertTrue "[ -z $DATA_PATH ]"
+  . placebo
+}
+
 . shunit2
