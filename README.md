@@ -21,7 +21,7 @@ Using record mode to save response in a file `shunit2/fixtures/aws.sh`:
 
 ~~~ bash
 . placebo
-pill_attach aws=/usr/local/bin/aws data_path=shunit2/fixtures/aws.sh
+pill_attach command=aws data_path=shunit2/fixtures/aws.sh
 pill_record
 ~~~
 
@@ -29,7 +29,7 @@ Reading those responses back in the context of your unit tests:
 
 ~~~ bash
 . placebo
-pill_attach aws=/usr/local/bin/aws data_path=shunit2/fixtures/aws.sh
+pill_attach command=aws data_path=shunit2/fixtures/aws.sh
 pill_playback
 ~~~
 
@@ -53,7 +53,7 @@ From the CLI:
 
 ~~~ text
 $ . placebo
-$ pill_attach aws=/usr/local/bin/aws data_path=shunit2/fixtures/aws.sh
+$ pill_attach command=aws data_path=shunit2/fixtures/aws.sh
 $ pill_record
 ~~~
 

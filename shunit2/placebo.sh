@@ -3,7 +3,7 @@
 
 setUp() {
   . placebo
-  pill_attach "aws=/usr/local/bin/aws" "data_path=shunit2/fixtures/aws.sh"
+  pill_attach "command=aws" "data_path=shunit2/fixtures/aws.sh"
 }
 
 tearDown() {
@@ -22,7 +22,7 @@ testPlayback() {
 }
 
 testRecord() {
-  pill_attach "aws=/usr/local/bin/aws" "data_path=shunit2/fixtures/test.sh"
+  pill_attach "command=aws" "data_path=shunit2/fixtures/test.sh"
   pill_record
 
   OLDPATH=$PATH
@@ -51,7 +51,7 @@ EOD
 }
 
 testRecordShortCommand() {
-  pill_attach "aws=/usr/local/bin/aws" "data_path=shunit2/fixtures/test.sh"
+  pill_attach "command=aws" "data_path=shunit2/fixtures/test.sh"
   pill_record
 
   OLDPATH=$PATH
@@ -80,7 +80,8 @@ testPillNotSet() {
   unset PILL
   response=$(aws ec2 run-instances)
   assertEquals \
-    "PILL must be set to playback or record" "$response"
+    "PILL must be set to playback or record. Try pill_playback or pill_record" \
+    "$response"
 }
 
 testDataPathNotSet() {
@@ -88,7 +89,12 @@ testDataPathNotSet() {
   unset DATA_PATH
   response=$(aws ec2 run-instances)
   assertEquals \
-    "DATA_PATH must be set" "$response"
+    "DATA_PATH must be set. Try pill_attach" "$response"
+}
+
+testExecutePlacebo() {
+  response=$(bash placebo)
+  assertTrue "echo $response | grep -q ^Usage"
 }
 
 . shunit2

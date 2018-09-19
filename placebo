@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2086,SC2015,SC2166,SC1090
+
+# shellcheck disable=SC1090,SC2015,SC2166
 
 usage() {
   case $1 in
@@ -7,13 +8,14 @@ usage() {
     echo "Usage: . $0 [-h]"
     ;;
   "attach")
-    echo "Usage: \
-pill_attach aws data_path=path/to/responses"
+    echo "Usage: pill_attach \
+command=aws data_path=path/to/responses"
     ;;
   esac
   return 1
 }
 [ "$1" == "-h" ] && usage main
+[[ "$0" == "$BASH_SOURCE" ]] && usage main
 
 pill_attach() {
 
@@ -22,9 +24,12 @@ pill_attach() {
   # allows possible expansion to work with
   # other tools aside from AWS CLI.
   #
-  [[ "$1" =~ ^aws= ]] || usage attach
+  [ "$1" == "command=aws" ] || usage attach
+
   echo "$2" | grep -q = || usage attach
   DATA_PATH=$(echo "$2" | cut -f2 -d=)
+
+  > commands_log
 }
 
 pill_playback() {
@@ -45,13 +50,14 @@ pill_cleanup() {
 
 create_new() {
   local f=$1
-  echo 'case "aws $*" in' > $f
+  mkdir -p "$(dirname "$f")"
+  echo 'case "aws $*" in' > "$f"
 }
 
 update_existing() {
   local f=$1
-  awk '/^esac/{exit}{print}' $f > $f.bak
-  mv $f.bak $f
+  awk '/^esac/{exit}{print}' "$f" > "$f.bak"
+  mv "$f.bak" "$f"
 }
 
 filter() {
@@ -64,21 +70,20 @@ record() {
   read -r f com sub <<< "$1 $2 $3"
   shift ; shift ; shift
 
-  [ -e $f ] && \
-    update_existing $f || \
-    create_new $f
+  [ -s "$f" ] && update_existing "$f" \
+    || create_new "$f"
 
   # open another case.
-  cat <<EOD | filter >> $f
+  cat <<EOD | filter >> "$f"
 'aws $com $sub $@')
   cat <<'EOF'
 EOD
 
   # insert response data.
-  command aws $com $sub "$@" | tee -a $f
+  command aws "$com" "$sub" "$@" | tee -a "$f"
 
   # close the case and the block.
-  cat >> $f <<EOD
+  cat >> "$f" <<EOD
 EOF
   ;;
 esac
@@ -86,35 +91,36 @@ EOD
 }
 
 aws() {
-  local com=$1
-  local sub=$2
+  local com sub
+  read -r com sub <<< "$1 $2"
   shift ; shift
 
-  if [ -z $PILL ] ; then
-    echo "PILL must be set to playback or record"
+  if [ -z "$PILL" ] ; then
+    echo "PILL must be set to playback or record. \
+Try pill_playback or pill_record"
     return 1
   fi
 
-  if [ -z $DATA_PATH ] ; then
-    echo "DATA_PATH must be set"
+  if [ -z "$DATA_PATH" ] ; then
+    echo "DATA_PATH must be set. \
+Try pill_attach"
     return 1
   fi
 
-  if [ -z $DATA_PATH -a "$PILL" == "playback" ] ; then
-    echo "DATA_PATH not found. Use pill_record to record one"
+  if [ ! -f "$DATA_PATH" -a "$PILL" == "playback" ] ; then
+    echo "DATA_PATH not found. \
+Try pill_record to record one"
     return 1
   fi
-
-  mkdir -p "$(dirname $DATA_PATH)"
 
   echo "aws $com $sub $*" | filter >> commands_log
 
   case "$PILL" in
   "playback")
-    source $DATA_PATH $com $sub "$@"
+    source "$DATA_PATH" "$com" "$sub" "$@"
     ;;
   "record")
-    record $DATA_PATH $com $sub "$@"
+    record "$DATA_PATH" "$com" "$sub" "$@"
     ;;
   esac
 }
