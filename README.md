@@ -65,7 +65,7 @@ Next, we source the script under test into the running shell too, like this:
 $ . script_under_test some_arg some_other_arg
 ~~~
 
-The script will appear to run as normal, but afterwards, responses from its calls to the AWS CLI are save in the data path.
+The script will appear to run as normal, but afterwards, responses from its calls to the AWS CLI are saved in the data path.
 
 ## Manual mocking
 
