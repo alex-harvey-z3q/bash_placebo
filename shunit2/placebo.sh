@@ -127,4 +127,17 @@ _record"
   . placebo
 }
 
+testMainUsage() {
+  response=$(. placebo -h)
+  assertEquals "Usage: . shunit2/placebo.sh [-h]" "$response"
+  . placebo
+}
+
+testPillFunctionUsage() {
+  . placebo
+  response=$(pill_playback -h)
+  assertEquals "Usage: pill_playback [-h]
+Sets Placebo to playback mode" "$response"
+}
+
 . shunit2

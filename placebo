@@ -3,38 +3,38 @@
 # shellcheck disable=SC1090,SC2015,SC2166
 
 pill_attach() {
-  [ "$1" == "-h" ] && _usage attach
+  [ "$1" == "-h" ] && _usage attach && return 1
 
   # $1 is a placeholder. It is here to provide
   # consistency with Python Placebo, and also
   # allows possible expansion to work with
   # other tools aside from AWS CLI.
   #
-  [ "$1" == "command=aws" ] || _usage attach
+  [ "$1" != "command=aws" ] && _usage attach && return 1
 
-  echo "$2" | grep -q = || _usage attach
+  ! echo "$2" | grep -q = && _usage attach && return 1
   DATA_PATH=$(echo "$2" | cut -f2 -d=)
 
   true > commands_log
 }
 
 pill_playback() {
-  [ "$1" == "-h" ] && _usage playback
+  [ "$1" == "-h" ] && _usage playback && return 1
   PILL=playback
 }
 
 pill_record() {
-  [ "$1" == "-h" ] && _usage record
+  [ "$1" == "-h" ] && _usage record && return 1
   PILL=record
 }
 
 pill_log() {
-  [ "$1" == "-h" ] && _usage log
+  [ "$1" == "-h" ] && _usage log && return 1
   [ -f commands_log ] && cat commands_log
 }
 
 pill_detach() {
-  [ "$1" == "-h" ] && _usage detach
+  [ "$1" == "-h" ] && _usage detach && return 1
   local f funcs
   funcs="_usage
 pill_attach
@@ -115,10 +115,8 @@ command=aws data_path=path/to/responses"
 functions and variables"
     ;;
   esac
-  return 1
+  return 0
 }
-[ "$1" == "-h" ] && _usage main
-[[ "$0" == "${BASH_SOURCE[0]}" ]] && _usage main
 
 _record() {
   local f com sub
@@ -164,5 +162,10 @@ _filter() {
   sed -e 's/  *$//' \
       -e "s/  *'/'/"
 }
+
+[ "$1" == "-h" ] && _usage main
+[[ "$0" == "${BASH_SOURCE[0]}" ]] && _usage main
+
+true
 
 # vim: ft=sh
