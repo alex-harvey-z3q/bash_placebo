@@ -10,18 +10,19 @@ tearDown() {
   rm -f /tmp/aws
   rm -f "shunit2/fixtures/test.sh"
   rm -f expected_content
-  pill_cleanup
-  unset PILL
-  unset DATA_PATH
+  pill_detach
 }
 
 testPlayback() {
+  . placebo
+  pill_attach "command=aws" "data_path=shunit2/fixtures/aws.sh"
   pill_playback
   response=$(aws autoscaling describe-auto-scaling-groups)
   assertEquals "response" "$response"
 }
 
 testRecord() {
+  . placebo
   pill_attach "command=aws" "data_path=shunit2/fixtures/test.sh"
   pill_record
 
@@ -39,18 +40,21 @@ case "aws \$*" in
 foo
 EOF
   ;;
+*)
+  echo "No responses for: aws \$*"
+  ;;
 esac
 EOD
 
   assertEquals "" "$(diff -wu expected_content $DATA_PATH)"
   assertEquals "foo" "$(/tmp/$command_to_run)"
-  assertTrue "[ -f commands_log ]"
   assertEquals "$command_to_run" "$(pill_log)"
 
   PATH=$OLDPATH
 }
 
 testRecordShortCommand() {
+  . placebo
   pill_attach "command=aws" "data_path=shunit2/fixtures/test.sh"
   pill_record
 
@@ -68,6 +72,9 @@ case "aws \$*" in
 foo
 EOF
   ;;
+*)
+  echo "No responses for: aws \$*"
+  ;;
 esac
 EOD
 
@@ -77,7 +84,7 @@ EOD
 }
 
 testPillNotSet() {
-  unset PILL
+  . placebo
   response=$(aws ec2 run-instances)
   assertEquals \
     "PILL must be set to playback or record. Try pill_playback or pill_record" \
@@ -85,8 +92,9 @@ testPillNotSet() {
 }
 
 testDataPathNotSet() {
+  . placebo
   pill_playback
-  unset DATA_PATH
+  unset DATA_PATH # not sure why this line is required.
   response=$(aws ec2 run-instances)
   assertEquals \
     "DATA_PATH must be set. Try pill_attach" "$response"

@@ -33,11 +33,11 @@ pill_attach command=aws data_path=shunit2/fixtures/aws.sh
 pill_playback
 ~~~
 
-Also, be sure to call the `pill_cleanup` function during tear-down:
+Also, be sure to call the `pill_detach` function during tear-down:
 
 ~~~ bash
 tearDown() {
-  pill_cleanup
+  pill_detach
 }
 ~~~
 

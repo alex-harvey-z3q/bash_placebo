@@ -15,7 +15,7 @@ command=aws data_path=path/to/responses"
   return 1
 }
 [ "$1" == "-h" ] && usage main
-[[ "$0" == "$BASH_SOURCE" ]] && usage main
+[[ "$0" == "${BASH_SOURCE[0]}" ]] && usage main
 
 pill_attach() {
 
@@ -29,7 +29,7 @@ pill_attach() {
   echo "$2" | grep -q = || usage attach
   DATA_PATH=$(echo "$2" | cut -f2 -d=)
 
-  > commands_log
+  true > commands_log
 }
 
 pill_playback() {
@@ -44,7 +44,24 @@ pill_log() {
   [ -f commands_log ] && cat commands_log
 }
 
-pill_cleanup() {
+pill_detach() {
+  local f funcs
+  funcs="usage
+pill_attach
+pill_playback
+pill_record
+pill_log
+pill_detach
+create_new
+update_existing
+filter
+record
+aws"
+  for f in $funcs ; do
+    unset -f "$f"
+  done
+  unset PILL
+  unset DATA_PATH
   rm -f commands_log
 }
 
@@ -86,6 +103,9 @@ EOD
   cat >> "$f" <<EOD
 EOF
   ;;
+*)
+  echo "No responses for: aws \$*"
+  ;;
 esac
 EOD
 }
@@ -95,15 +115,15 @@ aws() {
   read -r com sub <<< "$1 $2"
   shift ; shift
 
-  if [ -z "$PILL" ] ; then
-    echo "PILL must be set to playback or record. \
-Try pill_playback or pill_record"
-    return 1
-  fi
-
   if [ -z "$DATA_PATH" ] ; then
     echo "DATA_PATH must be set. \
 Try pill_attach"
+    return 1
+  fi
+
+  if [ -z "$PILL" ] ; then
+    echo "PILL must be set to playback or record. \
+Try pill_playback or pill_record"
     return 1
   fi
 
