@@ -2,114 +2,6 @@
 
 # shellcheck disable=SC1090,SC2015,SC2166
 
-usage() {
-  case $1 in
-  "main")
-    echo "Usage: . $0 [-h]"
-    ;;
-  "attach")
-    echo "Usage: pill_attach \
-command=aws data_path=path/to/responses"
-    ;;
-  esac
-  return 1
-}
-[ "$1" == "-h" ] && usage main
-[[ "$0" == "${BASH_SOURCE[0]}" ]] && usage main
-
-pill_attach() {
-
-  # $1 is a placeholder. It is here to provide
-  # consistency with Python Placebo, and also
-  # allows possible expansion to work with
-  # other tools aside from AWS CLI.
-  #
-  [ "$1" == "command=aws" ] || usage attach
-
-  echo "$2" | grep -q = || usage attach
-  DATA_PATH=$(echo "$2" | cut -f2 -d=)
-
-  true > commands_log
-}
-
-pill_playback() {
-  PILL=playback
-}
-
-pill_record() {
-  PILL=record
-}
-
-pill_log() {
-  [ -f commands_log ] && cat commands_log
-}
-
-pill_detach() {
-  local f funcs
-  funcs="usage
-pill_attach
-pill_playback
-pill_record
-pill_log
-pill_detach
-create_new
-update_existing
-filter
-record
-aws"
-  for f in $funcs ; do
-    unset -f "$f"
-  done
-  unset PILL
-  unset DATA_PATH
-  rm -f commands_log
-}
-
-create_new() {
-  local f=$1
-  mkdir -p "$(dirname "$f")"
-  echo 'case "aws $*" in' > "$f"
-}
-
-update_existing() {
-  local f=$1
-  awk '/^\*\)/{exit}{print}' "$f" > "$f.bak"
-  mv "$f.bak" "$f"
-}
-
-filter() {
-  sed -e 's/  *$//' \
-      -e "s/  *'/'/"
-}
-
-record() {
-  local f com sub
-  read -r f com sub <<< "$1 $2 $3"
-  shift ; shift ; shift
-
-  [ -s "$f" ] && update_existing "$f" \
-    || create_new "$f"
-
-  # open another case.
-  cat <<EOD | filter >> "$f"
-'aws $com $sub $@')
-  cat <<'EOF'
-EOD
-
-  # insert response data.
-  command aws "$com" "$sub" "$@" | tee -a "$f"
-
-  # close the case and the block.
-  cat >> "$f" <<EOD
-EOF
-  ;;
-*)
-  echo "No responses for: aws \$*"
-  ;;
-esac
-EOD
-}
-
 aws() {
   local com sub
   read -r com sub <<< "$1 $2"
@@ -133,16 +25,144 @@ Try pill_record to record one"
     return 1
   fi
 
-  echo "aws $com $sub $*" | filter >> commands_log
+  echo "aws $com $sub $*" | _filter >> commands_log
 
   case "$PILL" in
   "playback")
     source "$DATA_PATH" "$com" "$sub" "$@"
     ;;
   "record")
-    record "$DATA_PATH" "$com" "$sub" "$@"
+    _record "$DATA_PATH" "$com" "$sub" "$@"
     ;;
   esac
+}
+
+pill_attach() {
+  [ "$1" == "-h" ] && _usage attach
+
+  # $1 is a placeholder. It is here to provide
+  # consistency with Python Placebo, and also
+  # allows possible expansion to work with
+  # other tools aside from AWS CLI.
+  #
+  [ "$1" == "command=aws" ] || _usage attach
+
+  echo "$2" | grep -q = || _usage attach
+  DATA_PATH=$(echo "$2" | cut -f2 -d=)
+
+  true > commands_log
+}
+
+pill_playback() {
+  [ "$1" == "-h" ] && _usage playback
+  PILL=playback
+}
+
+pill_record() {
+  [ "$1" == "-h" ] && _usage record
+  PILL=record
+}
+
+pill_log() {
+  [ "$1" == "-h" ] && _usage log
+  [ -f commands_log ] && cat commands_log
+}
+
+pill_detach() {
+  [ "$1" == "-h" ] && _usage detach
+  local f funcs
+  funcs="_usage
+pill_attach
+pill_playback
+pill_record
+pill_log
+pill_detach
+_create_new
+_update_existing
+_filter
+_record
+aws"
+  for f in $funcs ; do
+    unset -f "$f"
+  done
+  unset PILL
+  unset DATA_PATH
+  rm -f commands_log
+}
+
+# private functions.
+
+_usage() {
+  case $1 in
+  "main")
+    echo "Usage: . $0 [-h]"
+    ;;
+  "attach")
+    echo "Usage: pill_attach [-h] \
+command=aws data_path=path/to/responses"
+    ;;
+  "playback")
+    echo "Usage: pill_playback [-h]"
+    echo "Sets Placebo to playback mode"
+    ;;
+  "record")
+    echo "Usage: pill_record [-h]"
+    echo "Sets Placebo to record mode"
+    ;;
+  "detach")
+    echo "Usage: pill_detach [-h]"
+    echo "Detaches Placebo and cleans up \
+functions and variables"
+    ;;
+  esac
+  return 1
+}
+[ "$1" == "-h" ] && _usage main
+[[ "$0" == "${BASH_SOURCE[0]}" ]] && _usage main
+
+_record() {
+  local f com sub
+  read -r f com sub <<< "$1 $2 $3"
+  shift ; shift ; shift
+
+  [ -s "$f" ] && _update_existing "$f" \
+    || _create_new "$f"
+
+  # open another case.
+  cat <<EOD | _filter >> "$f"
+'aws $com $sub $@')
+  cat <<'EOF'
+EOD
+
+  # insert response data.
+  command aws "$com" "$sub" "$@" | tee -a "$f"
+
+  # close the case and the block.
+  cat >> "$f" <<EOD
+EOF
+  ;;
+*)
+  echo "No responses for: aws \$*"
+  ;;
+esac
+EOD
+}
+
+_create_new() {
+  local f=$1
+  mkdir -p "$(dirname "$f")"
+  echo 'case "aws $*" in' > "$f"
+}
+
+_update_existing() {
+  local f=$1
+  awk '/^\*\)/{exit}{print}' "$f" > "$f.bak"
+  mv "$f.bak" "$f"
+}
+
+_filter() {
+  sed -e 's/  *$//' \
+      -e "s/  *'/'/"
 }
 
 # vim: ft=sh

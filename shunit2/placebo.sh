@@ -106,16 +106,16 @@ testExecutePlacebo() {
 }
 
 testDetach() {
-  funcs="usage
+  funcs="_usage
 pill_attach
 pill_playback
 pill_record
 pill_log
 pill_detach
-create_new
-update_existing
-filter
-record"
+_create_new
+_update_existing
+_filter
+_record"
   . placebo
   pill_detach
   for f in $funcs ; do
@@ -123,6 +123,7 @@ record"
   done
   assertTrue "[ -z $PILL ]"
   assertTrue "[ -z $DATA_PATH ]"
+  assertFalse "[ -e commands_log ]"
   . placebo
 }
 
