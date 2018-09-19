@@ -2,41 +2,6 @@
 
 # shellcheck disable=SC1090,SC2015,SC2166
 
-aws() {
-  local com sub
-  read -r com sub <<< "$1 $2"
-  shift ; shift
-
-  if [ -z "$DATA_PATH" ] ; then
-    echo "DATA_PATH must be set. \
-Try pill_attach"
-    return 1
-  fi
-
-  if [ -z "$PILL" ] ; then
-    echo "PILL must be set to playback or record. \
-Try pill_playback or pill_record"
-    return 1
-  fi
-
-  if [ ! -f "$DATA_PATH" -a "$PILL" == "playback" ] ; then
-    echo "DATA_PATH not found. \
-Try pill_record to record one"
-    return 1
-  fi
-
-  echo "aws $com $sub $*" | _filter >> commands_log
-
-  case "$PILL" in
-  "playback")
-    source "$DATA_PATH" "$com" "$sub" "$@"
-    ;;
-  "record")
-    _record "$DATA_PATH" "$com" "$sub" "$@"
-    ;;
-  esac
-}
-
 pill_attach() {
   [ "$1" == "-h" ] && _usage attach
 
@@ -88,6 +53,41 @@ aws"
   unset PILL
   unset DATA_PATH
   rm -f commands_log
+}
+
+aws() {
+  local com sub
+  read -r com sub <<< "$1 $2"
+  shift ; shift
+
+  if [ -z "$DATA_PATH" ] ; then
+    echo "DATA_PATH must be set. \
+Try pill_attach"
+    return 1
+  fi
+
+  if [ -z "$PILL" ] ; then
+    echo "PILL must be set to playback or record. \
+Try pill_playback or pill_record"
+    return 1
+  fi
+
+  if [ ! -f "$DATA_PATH" -a "$PILL" == "playback" ] ; then
+    echo "DATA_PATH not found. \
+Try pill_record to record one"
+    return 1
+  fi
+
+  echo "aws $com $sub $*" | _filter >> commands_log
+
+  case "$PILL" in
+  "playback")
+    source "$DATA_PATH" "$com" "$sub" "$@"
+    ;;
+  "record")
+    _record "$DATA_PATH" "$com" "$sub" "$@"
+    ;;
+  esac
 }
 
 # private functions.
