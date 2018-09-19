@@ -73,7 +73,7 @@ create_new() {
 
 update_existing() {
   local f=$1
-  awk '/^esac/{exit}{print}' "$f" > "$f.bak"
+  awk '/^\*\)/{exit}{print}' "$f" > "$f.bak"
   mv "$f.bak" "$f"
 }
 
