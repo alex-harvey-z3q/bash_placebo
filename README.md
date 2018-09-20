@@ -2,7 +2,7 @@
 
 [![Build Status](https://img.shields.io/travis/alexharv074/bash_placebo.svg)](https://travis-ci.org/alexharv074/bash_placebo)
 
-The Bash Placebo library is inspired by Mitch Garnaat's Python library of the [same name](https://github.com/garnaat/placebo).
+The Bash Placebo library is inspired by Mitch Garnaat's Python [library](https://github.com/garnaat/placebo) of the same name.
 
 It allows you to call AWS CLI commands and retrieve responses that look like real AWS CLI responses from a file-based data store. This allows you to unit test your AWS CLI shell scripts without needing to hit a real AWS account.
 
@@ -33,12 +33,10 @@ pill_attach command=aws data_path=shunit2/fixtures/aws.sh
 pill_playback
 ~~~
 
-Also, be sure to call the `pill_detach` function during tear-down:
+And to clean up:
 
 ~~~ bash
-tearDown() {
-  pill_detach
-}
+pill_detach
 ~~~
 
 ## Code example
@@ -84,7 +82,7 @@ esac
 
 ## Spies
 
-A log of all commands can be obtained using the `pill_log` function, allowing the mocks to be "spies" on AWS CLI commands called.
+A log of all commands can be obtained using the `pill_log` function, allowing the mocks to be "spies" on AWS CLI commands called. If using shunit2, for example:
 
 ~~~ bash
 testCommandsLogged() {
