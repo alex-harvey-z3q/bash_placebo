@@ -3,38 +3,45 @@
 # shellcheck disable=SC1090,SC2015,SC2166
 
 pill_attach() {
-  [ "$1" == "-h" ] && _usage attach && return 1
+  [ "$1" == "-h" ] && \
+    _usage attach && return
 
   # $1 is a placeholder. It is here to provide
   # consistency with Python Placebo, and also
   # allows possible expansion to work with
   # other tools aside from AWS CLI.
   #
-  [ "$1" != "command=aws" ] && _usage attach && return 1
+  { [ "$1" != "command=aws" ] || \
+    ! echo "$2" | grep -q = ; } && \
+    _usage attach && return 1
 
-  ! echo "$2" | grep -q = && _usage attach && return 1
   DATA_PATH=$(echo "$2" | cut -f2 -d=)
-
   true > commands_log
 }
 
 pill_playback() {
-  [ "$1" == "-h" ] && _usage playback && return 1
+  [ "$1" == "-h" ] && \
+    _usage playback && return
   PILL=playback
 }
 
 pill_record() {
-  [ "$1" == "-h" ] && _usage record && return 1
+  [ "$1" == "-h" ] && \
+    _usage record && return
   PILL=record
 }
 
 pill_log() {
-  [ "$1" == "-h" ] && _usage log && return 1
-  [ -f commands_log ] && cat commands_log
+  [ "$1" == "-h" ] && \
+    _usage log && return
+  [ -f commands_log ] && \
+    cat commands_log
 }
 
 pill_detach() {
-  [ "$1" == "-h" ] && _usage detach && return 1
+  [ "$1" == "-h" ] && \
+    _usage detach && return
+
   local f funcs
   funcs="_usage
 pill_attach
@@ -67,14 +74,14 @@ Try pill_attach"
   fi
 
   if [ -z "$PILL" ] ; then
-    echo "PILL must be set to playback or record. \
-Try pill_playback or pill_record"
+    echo "PILL must be set to playback \
+or record. Try pill_playback or pill_record"
     return 1
   fi
 
   if [ ! -f "$DATA_PATH" -a "$PILL" == "playback" ] ; then
-    echo "DATA_PATH not found. \
-Try pill_record to record one"
+    echo "DATA_PATH not found. Try pill_record to \
+record one"
     return 1
   fi
 
