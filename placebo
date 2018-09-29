@@ -64,10 +64,6 @@ aws"
 }
 
 aws() {
-  local com sub
-  read -r com sub <<< "$1 $2"
-  shift ; shift
-
   if [ -z "$DATA_PATH" ] ; then
     echo "DATA_PATH must be set. \
 Try pill_attach"
@@ -88,15 +84,15 @@ pill_record to record one"
     return 1
   fi
 
-  echo "aws $com $sub $*" | \
+  echo "aws $*" | \
     _filter >> commands_log
 
   case "$PILL" in
   "playback")
-    source "$DATA_PATH" "$com" "$sub" "$@"
+    source "$DATA_PATH" "$@"
     ;;
   "record")
-    _record "$DATA_PATH" "$com" "$sub" "$@"
+    _record "$DATA_PATH" "$@"
     ;;
   esac
 }
@@ -130,21 +126,19 @@ up functions and variables"
 }
 
 _record() {
-  local f com sub
-  read -r f com sub <<< "$1 $2 $3"
-  shift ; shift ; shift
+  local f="$1" ; shift
 
   [ -s "$f" ] && _update_existing "$f" \
     || _create_new "$f"
 
   # open another case.
   cat <<EOD | _filter >> "$f"
-'aws $com $sub $@')
+'aws $@')
   cat <<'EOF'
 EOD
 
   # insert response data.
-  command aws "$com" "$sub" "$@" | tee -a "$f"
+  command aws "$@" | tee -a "$f"
 
   # close the case and the block.
   cat >> "$f" <<EOD
