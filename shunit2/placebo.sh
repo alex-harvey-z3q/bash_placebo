@@ -83,6 +83,14 @@ EOD
   PATH=$OLDPATH
 }
 
+testDataPathIsADir() {
+  . placebo
+  response=$(pill_attach "command=aws" "data_path=shunit2/fixtures" | head -1)
+  assertEquals \
+    "DATA_PATH should be a path to a file but you specified a directory" \
+    "$response"
+}
+
 testPillNotSet() {
   . placebo
   response=$(aws ec2 run-instances)
