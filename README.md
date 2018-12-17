@@ -95,8 +95,15 @@ testCommandsLogged() {
 
 PRs are welcome. To run the tests:
 
+Ensure you have dependencies installed:
+
+- shellcheck
+- shunit2
+
+Then run make:
+
 ~~~ text
-$ bash shunit2/placebo.sh
+$ make
 ~~~
 
 Support is available so feel free to raise issues.
