@@ -1,6 +1,40 @@
 #!/usr/bin/env bash
 
-# shellcheck disable=SC1090,SC2015,SC2166
+_usage() {
+  case $1 in
+  "main")
+    echo "Usage: . $0 [-h]"
+    ;;
+  "attach")
+    echo "Usage: pill_attach [-h] \
+command=aws data_path=path/to/responses"
+    ;;
+  "playback")
+    echo "Usage: pill_playback [-h]"
+    echo "Sets Placebo to playback mode"
+    ;;
+  "record")
+    echo "Usage: pill_record [-h]"
+    echo "Sets Placebo to record mode"
+    ;;
+  "detach")
+    echo "Usage: pill_detach [-h]"
+    echo "Detaches Placebo and cleans \
+up functions and variables"
+    ;;
+  esac
+  return 0
+}
+
+if [[ "$0" == "${BASH_SOURCE[0]}" ]] ; then
+  _usage main
+  false
+fi
+
+if [ "$1" == "-h" ] ; then
+  _usage main
+  true
+fi
 
 pill_attach() {
   [ "$1" == "-h" ] && \
@@ -106,32 +140,6 @@ pill_record to record one"
 
 # private functions.
 
-_usage() {
-  case $1 in
-  "main")
-    echo "Usage: . $0 [-h]"
-    ;;
-  "attach")
-    echo "Usage: pill_attach [-h] \
-command=aws data_path=path/to/responses"
-    ;;
-  "playback")
-    echo "Usage: pill_playback [-h]"
-    echo "Sets Placebo to playback mode"
-    ;;
-  "record")
-    echo "Usage: pill_record [-h]"
-    echo "Sets Placebo to record mode"
-    ;;
-  "detach")
-    echo "Usage: pill_detach [-h]"
-    echo "Detaches Placebo and cleans \
-up functions and variables"
-    ;;
-  esac
-  return 0
-}
-
 _record() {
   local f="$1" ; shift
 
@@ -174,15 +182,5 @@ _filter() {
   sed -e 's/  *$//' \
       -e "s/  *'/'/"
 }
-
-if [[ "$0" == "${BASH_SOURCE[0]}" ]] ; then
-  _usage main
-  false
-fi
-
-if [ "$1" == "-h" ] ; then
-  _usage main
-  true
-fi
 
 # vim: ft=sh
