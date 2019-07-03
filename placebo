@@ -62,8 +62,9 @@ Try pill_attach"
   fi
 
   PILL=playback
-  local COMMAND_PATH="$(_join_path $DATA_PATH function.sh)"
-  source $COMMAND_PATH
+  local COMMAND_PATH
+  COMMAND_PATH="$(_join_path "$DATA_PATH" function.sh)"
+  source "$COMMAND_PATH"
 }
 
 pill_record() {
@@ -97,15 +98,16 @@ _record
 _contains
 _save_func
 mock"
-  funcs=($(echo $funcs | tr "\n\r" "\n"))
-  for f in ${funcs[@]} ; do
+  funcs=($(echo "$funcs" | tr "\n\r" "\n"))
+  for f in "${funcs[@]}" ; do
     unset -f "$f"
   done
 
   if [[ "$PILL" == "playback" ]] ; then
-    local COMMAND_PATH="$(_join_path $DATA_PATH function.sh)"
-    local mock_funcs="$(bash $COMMAND_PATH -l)"
-    for f in ${mock_funcs[@]} ; do
+    local COMMAND_PATH="$(_join_path "$DATA_PATH" function.sh)"
+    local mock_funcs="$(bash "$COMMAND_PATH" -l)"
+    mock_funcs=($(echo "$mock_funcs" | tr "\n\r" "\n"))
+    for f in "${mock_funcs[@]}" ; do
       unset -f "$f"
     done
   fi
@@ -168,7 +170,7 @@ _save_func() {
 
   if [[ ! $contains ]] ; then
     local s="$a() {
-  source "$RES_PATH" "\$@"
+  _check_response \$(source "$RES_PATH" "\$@") \$?
 }
 "
     echo $s | cat - $COMMAND_PATH > temp && mv temp $COMMAND_PATH
@@ -184,18 +186,24 @@ _record() {
 
   local c=$(echo $@ | tr "\n\r" " ")
 
+  r=$(command "$@")
+  local e=$?
+
   # open another case.
   cat <<EOD | _filter >> "$f"
 '$c')
-  cat <<'EOF'
 EOD
 
-  # insert response data.
-  command "$@" | tee -a "$f"
+  if [[ $e -ne 0 ]]; then
+    echo "  exit \"$e\"" >> "$f"
+  else
+    echo "  cat <<'EOF'" >> "$f"
+    echo "$r" >> "$f"
+    echo "EOF" >> "$f"
+  fi
 
   # close the case and the block.
   cat >> "$f" <<EOD
-EOF
   ;;
 *)
   echo "No responses for: $a \$*"
@@ -211,7 +219,16 @@ _create_new() {
 
   if [[ "$a" == "-c" ]] ; then
     cat >> "$f" <<EOD
-list () {
+
+_check_response() {
+  if [[ $1 -ne 0 ]]; then
+    exit $1
+  else
+    echo $0
+  fi
+}
+
+list() {
   declare -f | awk '/ \(\) $/ && !/^list / {print \$1}'
 }
 
@@ -221,7 +238,7 @@ if [[ "\$1" == "-l" ]] ; then
 fi
 EOD
   else
-    echo 'case "'$a' $*" in' > "$f"
+    echo 'case "'"$a"' $*" in' > "$f"
   fi
 }
 
