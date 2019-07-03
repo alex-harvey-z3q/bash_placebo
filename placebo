@@ -221,10 +221,10 @@ _create_new() {
     cat >> "$f" <<EOD
 
 _check_response() {
-  if [[ $1 -ne 0 ]]; then
-    exit $1
+  if [[ $2 -ne 0 ]]; then
+    exit $2
   else
-    echo $0
+    echo $1
   fi
 }
 
