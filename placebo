@@ -192,26 +192,30 @@ _record() {
     _create_new "$comm"
   fi
 
-  # TODO. I can capture the response data first,
-  # then check its length, then decide if I want
-  # the cat <<EOF pattern for multiline, or just
-  # echo for single lines, making the generated
-  # code cleaner.
+  # capture the response data.
+  # shellcheck disable=SC2086
+  response=$(command $cli)
 
-  # open another case.
-  cat <<EOD | _filter >> "$file"
+  lines=$(wc -l <<< "$response")
+  if [ "$lines" -eq 1 ] ; then
+
+    # Print case on one line if it's short.
+    echo \
+      "'$cli') echo '$response' ;;" >> "$file"
+  else
+
+    # ... or format as multiline (cat <<EOF ...) otherwise.
+    cat <<EOD | _filter >> "$file"
 '$cli')
   cat <<'EOF'
-EOD
-
-  # insert response data.
-  # shellcheck disable=SC2086
-  command $cli | tee -a "$file"
-
-  # close the case and the block.
-  cat >> "$file" <<EOD
+$response
 EOF
   ;;
+EOD
+  fi
+
+  # And close the case statement.
+  cat >> "$file" <<EOD
 *)
   echo "No responses for: $comm \$*" | tee -a unknown_commands
   ;;

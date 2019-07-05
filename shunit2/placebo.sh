@@ -45,11 +45,7 @@ case "aws \$*" in
 response
 EOF
   ;;
-'$command_to_run')
-  cat <<'EOF'
-foo
-EOF
-  ;;
+'$command_to_run') echo 'foo' ;;
 *)
   echo "No responses for: aws \$*" | tee -a unknown_commands
   ;;
@@ -83,16 +79,8 @@ case "aws \$*" in
 response
 EOF
   ;;
-'aws ec2 run-instances --image-id foo')
-  cat <<'EOF'
-foo
-EOF
-  ;;
-'$command_to_run')
-  cat <<'EOF'
-foo
-EOF
-  ;;
+'aws ec2 run-instances --image-id foo') echo 'foo' ;;
+'$command_to_run') echo 'foo' ;;
 *)
   echo "No responses for: aws \$*" | tee -a unknown_commands
   ;;
@@ -120,11 +108,7 @@ echo bar
   $command_to_run > /dev/null
   cat > expected_content <<EOD
 case "curl \$*" in
-'$command_to_run')
-  cat <<'EOF'
-bar
-EOF
-  ;;
+'$command_to_run') echo 'bar' ;;
 *)
   echo "No responses for: curl \$*" | tee -a unknown_commands
   ;;
