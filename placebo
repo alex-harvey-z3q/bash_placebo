@@ -59,7 +59,7 @@ pill_attach() {
 
   err=0
   for c in "${COMMANDS[@]}" ; do
-    if ! which "$c" > /dev/null 2>&1 ; then
+    if ! command -v "$c" > /dev/null ; then
       echo "command '$c' not found" ; (( err++ ))
     fi
   done
