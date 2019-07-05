@@ -1,14 +1,25 @@
 #!/usr/bin/env bash
 
 setUp() {
+  echo "#!/usr/bin/env bash
+echo foo
+" > /tmp/aws ; chmod +x /tmp/aws
+  echo "#!/usr/bin/env bash
+echo bar
+" > /tmp/curl ; chmod +x /tmp/curl
+
   . placebo
-  pill_attach "command=aws" "data_path=shunit2/fixtures"
+  PATH=/tmp:$PATH pill_attach "command=aws" "data_path=shunit2/fixtures"
 }
 
 tearDown() {
-  rm -f /tmp/aws
-  rm -f shunit2/fixtures/test.sh shunit2/fixtures/curl.sh
-  rm -f expected_content
+  rm -f \
+    /tmp/aws \
+    /tmp/curl \
+    shunit2/fixtures/test.sh \
+    shunit2/fixtures/curl.sh \
+    expected_content
+
   type -t pill_detach > /dev/null && pill_detach ; true
 }
 
@@ -31,10 +42,6 @@ testRecord() {
 
   OLDPATH=$PATH
   PATH=/tmp:$PATH
-
-  echo "#!/usr/bin/env bash
-echo foo
-" > /tmp/aws ; chmod +x /tmp/aws
 
   command_to_run="aws ec2 run-instances --image-id foo"
   $command_to_run > /dev/null
@@ -68,8 +75,6 @@ testRecordShortCommand() {
   OLDPATH=$PATH
   PATH=/tmp:$PATH
 
-  echo "echo foo" > /tmp/aws ; chmod +x /tmp/aws
-
   command_to_run="aws help"
   $command_to_run > /dev/null
   cat > expected_content <<EOD
@@ -99,10 +104,6 @@ testRecordMultipleCommands() {
 
   OLDPATH=$PATH
   PATH=/tmp:$PATH
-
-  echo "#!/usr/bin/env bash
-echo bar
-" > /tmp/curl ; chmod +x /tmp/curl
 
   command_to_run="curl https://foo/bar/baz"
   $command_to_run > /dev/null

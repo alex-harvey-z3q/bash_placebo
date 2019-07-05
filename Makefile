@@ -6,7 +6,7 @@
 scripts = placebo
 check:
 	for i in $(scripts) ; do \
-		shellcheck --exclude=SC1090,SC2015,SC2166 $$i ; \
+		shellcheck --exclude=SC1090 $$i ; \
 		done
 
 # unit tests
