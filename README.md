@@ -2,9 +2,9 @@
 
 [![Build Status](https://img.shields.io/travis/alexharv074/bash_placebo.svg)](https://travis-ci.org/alexharv074/bash_placebo)
 
-The Bash Placebo library is inspired by Mitch Garnaat's Python [library](https://github.com/garnaat/placebo) of the same name.
+The Bash Placebo library is inspired by Mitch Garnaat's Python [library](https://github.com/garnaat/placebo) of the same name, although is more like Ruby's VCR in that any shell command can be stubbed, not only the AWS CLI commands.
 
-It allows you to call AWS CLI commands and retrieve responses that look like real AWS CLI responses from a file-based data store. This allows you to unit test your AWS CLI shell scripts without needing to hit a real AWS account.
+It allows you to call commands and retrieve responses that look like real responses from a file-based data store. This makes creating mocks for your shell scripts easy.
 
 ## Installation
 
@@ -17,11 +17,11 @@ $ curl -o /usr/local/bin/placebo \
 
 ## Quickstart
 
-Using record mode to save response in a file `shunit2/fixtures/aws.sh`:
+Using record mode to save responses from the AWS CLI in a file `shunit2/fixtures/aws.sh`:
 
 ~~~ bash
 . placebo
-pill_attach command=aws data_path=shunit2/fixtures/aws.sh
+pill_attach command=aws data_path=shunit2/fixtures
 pill_record
 ~~~
 
@@ -29,7 +29,7 @@ Reading those responses back in the context of your unit tests:
 
 ~~~ bash
 . placebo
-pill_attach command=aws data_path=shunit2/fixtures/aws.sh
+pill_attach command=aws data_path=shunit2/fixtures
 pill_playback
 ~~~
 
@@ -45,13 +45,13 @@ A full working example of tests in the shunit2 framework that use this library c
 
 ## Recording responses
 
-Recording the responses you need to test the AWS CLI shell script you are working on is easy.
+Recording the responses you need to test the shell script you are working on is easy.
 
 From the CLI:
 
 ~~~ text
 $ . placebo
-$ pill_attach command=aws data_path=shunit2/fixtures/aws.sh
+$ pill_attach command=aws data_path=shunit2/fixtures
 $ pill_record
 ~~~
 
@@ -63,7 +63,7 @@ Next, we source the script under test into the running shell too, like this:
 $ . script_under_test some_arg some_other_arg
 ~~~
 
-The script will appear to run as normal, but afterwards, responses from its calls to the AWS CLI are saved in the data path.
+The script will appear to run as normal, but afterwards, responses from its calls to the `aws` command are saved in the data path.
 
 ## Manual mocking
 

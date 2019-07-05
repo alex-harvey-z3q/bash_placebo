@@ -2,7 +2,7 @@
 
 setUp() {
   . placebo
-  pill_attach "command=aws" "data_path=shunit2/fixtures/aws.sh"
+  pill_attach "command=aws" "data_path=shunit2/fixtures"
 }
 
 tearDown() {
@@ -12,9 +12,13 @@ tearDown() {
   type -t pill_detach > /dev/null && pill_detach ; true
 }
 
+oneTimeTearDown() {
+  git checkout shunit2/fixtures/aws.sh
+}
+
 testPlayback() {
   . placebo
-  pill_attach "command=aws" "data_path=shunit2/fixtures/aws.sh"
+  pill_attach "command=aws" "data_path=shunit2/fixtures"
   pill_playback
   response=$(aws autoscaling describe-auto-scaling-groups)
   assertEquals "response" "$response"
@@ -22,31 +26,39 @@ testPlayback() {
 
 testRecord() {
   . placebo
-  pill_attach "command=aws" "data_path=shunit2/fixtures/test.sh"
+  pill_attach "command=aws" "data_path=shunit2/fixtures"
   pill_record
 
   OLDPATH=$PATH
   PATH=/tmp:$PATH
 
-  echo "echo foo" > /tmp/aws ; chmod +x /tmp/aws
+  echo "#!/usr/bin/env bash
+echo foo
+" > /tmp/aws ; chmod +x /tmp/aws
 
   command_to_run="aws ec2 run-instances --image-id foo"
   $command_to_run > /dev/null
   cat > expected_content <<EOD
 case "aws \$*" in
+'aws autoscaling describe-auto-scaling-groups')
+  cat <<'EOF'
+response
+EOF
+  ;;
 '$command_to_run')
   cat <<'EOF'
 foo
 EOF
   ;;
 *)
-  echo "No responses for: aws \$*"
+  echo "No responses for: aws \$*" | tee -a unknown_commands
   ;;
 esac
 EOD
 
-  assertEquals "" "$(diff -wu expected_content $DATA_PATH)"
-  assertEquals "foo" "$(/tmp/$command_to_run)"
+  assertEquals "" "$(diff -wu expected_content "$DATA_PATH"/aws.sh)"
+  # shellcheck disable=SC2086
+  assertEquals "foo" "$(bash /tmp/$command_to_run)"
   assertEquals "$command_to_run" "$(pill_log)"
 
   PATH=$OLDPATH
@@ -54,7 +66,7 @@ EOD
 
 testRecordShortCommand() {
   . placebo
-  pill_attach "command=aws" "data_path=shunit2/fixtures/test.sh"
+  pill_attach "command=aws" "data_path=shunit2/fixtures"
   pill_record
 
   OLDPATH=$PATH
@@ -66,27 +78,37 @@ testRecordShortCommand() {
   $command_to_run > /dev/null
   cat > expected_content <<EOD
 case "aws \$*" in
+'aws autoscaling describe-auto-scaling-groups')
+  cat <<'EOF'
+response
+EOF
+  ;;
+'aws ec2 run-instances --image-id foo')
+  cat <<'EOF'
+foo
+EOF
+  ;;
 '$command_to_run')
   cat <<'EOF'
 foo
 EOF
   ;;
 *)
-  echo "No responses for: aws \$*"
+  echo "No responses for: aws \$*" | tee -a unknown_commands
   ;;
 esac
 EOD
 
-  assertEquals "" "$(diff -wu expected_content $DATA_PATH)"
+  assertEquals "" "$(diff -wu expected_content "$DATA_PATH"/aws.sh)"
 
   PATH=$OLDPATH
 }
 
-testDataPathIsADir() {
+testDataPathIsNotADir() {
   . placebo
-  response=$(pill_attach "command=aws" "data_path=shunit2/fixtures" | head -1)
+  response=$(pill_attach "command=aws" "data_path=shunit2/fixtures/aws.sh" | head -1)
   assertEquals \
-    "DATA_PATH should be a path to a file but you specified a directory" \
+    "DATA_PATH should be a path to a directory" \
     "$response"
 }
 
@@ -109,7 +131,7 @@ testDataPathNotSet() {
 
 testExecutePlacebo() {
   response=$(bash placebo)
-  assertTrue "echo $response | grep -q ^Usage"
+  assertTrue "Usage message not seen" "grep -q Usage <<< $response"
 }
 
 testDetach() {
@@ -119,6 +141,8 @@ pill_playback
 pill_record
 pill_log
 pill_detach
+_cli_to_comm
+_comm_to_file
 _create_new
 _update_existing
 _filter

@@ -7,7 +7,7 @@ _usage() {
     ;;
   "attach")
     echo "Usage: pill_attach [-h] \
-command=aws data_path=path/to/responses"
+command=command1[,command2,...] data_path=path/to/responses"
     ;;
   "playback")
     echo "Usage: pill_playback [-h]"
@@ -38,20 +38,15 @@ pill_attach() {
   [ "$1" == "-h" ] && \
     _usage attach && return
 
-  # $1 is a placeholder. It is here to
-  # provide consistency with Python Placebo,
-  # and also allows possible expansion to
-  # work with other tools aside from
-  # AWS CLI.
-  #
-  { [ "$1" != "command=aws" ] || [[ ! "$2" =~ = ]] ; } \
+  { [[ ! "$1" =~ command= ]] || [[ ! "$2" =~ = ]] ; } \
     && _usage attach && return 1
 
+  IFS=',' read -r -a COMMANDS <<< "${1#command=}"
   DATA_PATH=$(cut -f2 -d= <<< "$2")
 
-  if [ -d "$DATA_PATH" ] ; then
+  if [ ! -d "$DATA_PATH" ] ; then
     echo "DATA_PATH should be a path to \
-a file but you specified a directory"
+a directory"
     _usage attach && return 1
   fi
 
@@ -67,6 +62,7 @@ pill_playback() {
 pill_record() {
   [ "$1" == "-h" ] && \
     _usage record && return
+  # shellcheck disable=SC2034
   PILL=record
 }
 
@@ -88,12 +84,13 @@ pill_playback
 pill_record
 pill_log
 pill_detach
+_cli_to_comm
+_comm_to_file
 _create_new
 _update_existing
 _filter
-_record
-aws"
-  for f in $funcs ; do
+_record"
+  for f in $funcs "${COMMANDS[@]}"; do
     unset -f "$f"
   done
   unset PILL
@@ -101,80 +98,110 @@ aws"
   rm -f commands_log
 }
 
-aws() {
-  if [ -z "$DATA_PATH" ] ; then
-    echo "DATA_PATH must be set. \
-Try pill_attach"
-    return 1
-  fi
+for c in "${COMMANDS[@]}" ; do
+  # shellcheck disable=SC2016,SC1004
+  code="$c"'() {
+    local file comm
 
-  if [ -z "$PILL" ] ; then
-    echo "PILL must be set to \
+    comm="${FUNCNAME[0]}"
+    file=$(_comm_to_file "$comm")
+
+    if [ -z "$DATA_PATH" ] ; then
+      echo "DATA_PATH must be set. \
+Try pill_attach"
+      return 1
+    fi
+
+    if [ -z "$PILL" ] ; then
+      echo "PILL must be set to \
 playback or record. Try pill_playback \
 or pill_record"
-    return 1
-  fi
+      return 1
+    fi
 
-  if [ ! -f "$DATA_PATH" -a \
-    "$PILL" == "playback" ] ; then
-    echo "DATA_PATH not found. Try \
-pill_record to record one"
-    return 1
-  fi
+    if [ ! -f "$file" -a "$PILL" == "playback" ] ; then
+      echo "$file not found. \
+Make sure you firstly record it"
+      return 1
+    fi
 
-  echo "${FUNCNAME[0]} $*" | \
-    _filter >> commands_log
+    echo "$comm $*" | \
+      _filter >> commands_log
 
-  case "$PILL" in
-  "playback")
-    source "$DATA_PATH" "$@"
-    ;;
-  "record")
-    _record "$DATA_PATH" "$@"
-    ;;
-  esac
-}
+    case "$PILL" in
+    "playback")
+      source "$file" "$@"
+      ;;
+    "record")
+      _record "$file" "$comm $*"
+      ;;
+    esac
+  }'
+  eval "$code"
+done
 
 # private functions.
 
-_record() {
-  local f="$1" ; shift
+_cli_to_comm() {
+  awk '{print $1}' <<< "$1"
+}
 
-  if [ -s "$f" ] ; then
-    _update_existing "$f"
+_comm_to_file() {
+  echo "$DATA_PATH"/"$1".sh
+}
+
+_record() {
+  local file cli comm
+  file="$1" ; cli="$2"
+  comm=$(_cli_to_comm "$cli")
+
+  if [ -s "$file" ] ; then
+    _update_existing "$comm"
   else
-    _create_new "$f"
+    _create_new "$comm"
   fi
 
+  # TODO. I can capture the response data first,
+  # then check its length, then decide if I want
+  # the cat <<EOF pattern for multiline, or just
+  # echo for single lines, making the generated
+  # code cleaner.
+
   # open another case.
-  cat <<EOD | _filter >> "$f"
-'aws $@')
+  cat <<EOD | _filter >> "$file"
+'$cli')
   cat <<'EOF'
 EOD
 
   # insert response data.
-  command aws "$@" | tee -a "$f"
+  # shellcheck disable=SC2086
+  command $cli | tee -a "$file"
 
   # close the case and the block.
-  cat >> "$f" <<EOD
+  cat >> "$file" <<EOD
 EOF
   ;;
 *)
-  echo "No responses for: aws \$*"
+  echo "No responses for: $comm \$*" | tee -a unknown_commands
   ;;
 esac
 EOD
 }
 
 _create_new() {
-  local f="$1"
-  mkdir -p "$(dirname "$f")"
-  echo 'case "aws $*" in' > "$f"
+  local comm f
+  comm="$1" ; f=$(_comm_to_file "$comm")
+  # shellcheck disable=SC2086
+  echo 'case "'$comm' $*" in' > "$f"
 }
 
 _update_existing() {
-  local f="$1"
-  awk '/^\*\)/{exit}{print}' "$f" > "$f.bak"
+  local comm f
+  comm="$1" ; f=$(_comm_to_file "$comm")
+  awk '
+    /^\*\)/ {exit}
+    {print}
+    ' "$f" > "$f.bak"
   mv "$f.bak" "$f"
 }
 

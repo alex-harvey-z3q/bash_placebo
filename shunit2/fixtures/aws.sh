@@ -1,5 +1,10 @@
 case "aws $*" in
 'aws autoscaling describe-auto-scaling-groups')
-  echo "response"
+  cat <<'EOF'
+response
+EOF
+  ;;
+*)
+  echo "No responses for: aws $*" | tee -a unknown_commands
   ;;
 esac
