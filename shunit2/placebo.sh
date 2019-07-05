@@ -201,4 +201,31 @@ testPillFunctionUsage() {
 Sets Placebo to playback mode" "$response"
 }
 
+functionUnderTest() {
+  dir=/tmp/foo
+  touch "$dir"
+  response=$(ls -l "$dir")
+  echo "$response"
+  rm -f "$dir"
+}
+
+testEndToEnd() {
+  . placebo
+  pill_attach "command=touch,ls,rm" "data_path=shunit2/fixtures"
+  pill_record
+  response1=$(functionUnderTest)
+  echo "response #1: $response1"
+  pill_detach
+
+  . placebo
+  pill_attach "command=touch,ls,rm" "data_path=shunit2/fixtures"
+  pill_playback
+  response2=$(functionUnderTest)
+  echo "response #2: $response2"
+  pill_detach
+  assertEquals "end to end test returned different response in playback mode" "$response1" "$response2"
+
+  command rm -f shunit2/fixtures/{touch,ls,rm}.sh
+}
+
 . shunit2

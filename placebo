@@ -194,7 +194,7 @@ _record() {
 
   # capture the response data.
   # shellcheck disable=SC2086
-  response=$(command $cli)
+  response=$(command $cli) ; echo "$response"
 
   lines=$(wc -l <<< "$response")
   if [ "$lines" -eq 1 ] ; then
