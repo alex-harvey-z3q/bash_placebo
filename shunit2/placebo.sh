@@ -9,7 +9,7 @@ tearDown() {
   rm -f /tmp/aws
   rm -f "shunit2/fixtures/test.sh"
   rm -f expected_content
-  pill_detach
+  type -t pill_detach > /dev/null && pill_detach ; true
 }
 
 testPlayback() {
