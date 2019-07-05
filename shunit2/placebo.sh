@@ -7,7 +7,7 @@ setUp() {
 
 tearDown() {
   rm -f /tmp/aws
-  rm -f "shunit2/fixtures/test.sh"
+  rm -f shunit2/fixtures/test.sh shunit2/fixtures/curl.sh
   rm -f expected_content
   type -t pill_detach > /dev/null && pill_detach ; true
 }
@@ -104,11 +104,55 @@ EOD
   PATH=$OLDPATH
 }
 
+testRecordMultipleCommands() {
+  . placebo
+  pill_attach "command=aws,curl" "data_path=shunit2/fixtures"
+  pill_record
+
+  OLDPATH=$PATH
+  PATH=/tmp:$PATH
+
+  echo "#!/usr/bin/env bash
+echo bar
+" > /tmp/curl ; chmod +x /tmp/curl
+
+  command_to_run="curl https://foo/bar/baz"
+  $command_to_run > /dev/null
+  cat > expected_content <<EOD
+case "curl \$*" in
+'$command_to_run')
+  cat <<'EOF'
+bar
+EOF
+  ;;
+*)
+  echo "No responses for: curl \$*" | tee -a unknown_commands
+  ;;
+esac
+EOD
+
+  assertEquals "command 1 is not curl but '${COMMANDS[1]}'" "curl" "${COMMANDS[1]}"
+  assertEquals "" "$(diff -wu expected_content "$DATA_PATH"/curl.sh)"
+  # shellcheck disable=SC2086
+  assertEquals "bar" "$(bash /tmp/$command_to_run)"
+  assertEquals "$command_to_run" "$(pill_log)"
+
+  PATH=$OLDPATH
+}
+
+testNonexistentCommands() {
+  . placebo
+  response=$(pill_attach "command=aws,curl,foobarbaz" "data_path=shunit2/fixtures" | head -1)
+  assertEquals \
+    "command 'foobarbaz' not found" \
+    "$response"
+}
+
 testDataPathIsNotADir() {
   . placebo
   response=$(pill_attach "command=aws" "data_path=shunit2/fixtures/aws.sh" | head -1)
   assertEquals \
-    "DATA_PATH should be a path to a directory" \
+    "DATA_PATH should be a directory" \
     "$response"
 }
 
@@ -141,6 +185,7 @@ pill_playback
 pill_record
 pill_log
 pill_detach
+_mock
 _cli_to_comm
 _comm_to_file
 _create_new

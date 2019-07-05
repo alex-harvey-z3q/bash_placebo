@@ -65,6 +65,16 @@ $ . script_under_test some_arg some_other_arg
 
 The script will appear to run as normal, but afterwards, responses from its calls to the `aws` command are saved in the data path.
 
+## Mocking more than one command
+
+If you wish to mock more than one command, separate them by commas like this:
+
+~~~ text
+$ . placebo
+$ pill_attach command=aws,curl data_path=shunit2/fixtures
+$ pill_record
+~~~
+
 ## Manual mocking
 
 If you want to create fake responses manually that can be read in later by Placebo, it is quite simple. They are formatted as case statements. For example:
@@ -90,6 +100,10 @@ testCommandsLogged() {
   assertEquals "$(<expected_log)" "$(pill_log)"
 }
 ~~~
+
+## Known issues
+
+- Cannot build mocks where the same command is called multiple times but returns different responses.
 
 ## Contributing
 

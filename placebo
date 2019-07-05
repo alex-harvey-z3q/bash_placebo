@@ -35,20 +35,38 @@ if [ "$1" == "-h" ] ; then
 fi
 
 pill_attach() {
+  local err _command _data_path
+
   [ "$1" == "-h" ] && \
     _usage attach && return
 
-  { [[ ! "$1" =~ command= ]] || [[ ! "$2" =~ = ]] ; } \
+  _command="$1"
+  _data_path="$2"
+
+  { [[ ! "$_command" =~ command= ]] || \
+    [[ ! "$_data_path" =~ data_path= ]] ; } \
     && _usage attach && return 1
 
-  IFS=',' read -r -a COMMANDS <<< "${1#command=}"
-  DATA_PATH=$(cut -f2 -d= <<< "$2")
+  _command="${_command#command=}"
+  IFS=',' read -r -a COMMANDS <<< "$_command"
+
+  DATA_PATH="${_data_path#data_path=}"
 
   if [ ! -d "$DATA_PATH" ] ; then
-    echo "DATA_PATH should be a path to \
-a directory"
+    echo "DATA_PATH should be a directory"
     _usage attach && return 1
   fi
+
+  err=0
+  for c in "${COMMANDS[@]}" ; do
+    if ! which "$c" > /dev/null 2>&1 ; then
+      echo "command '$c' not found" ; (( err++ ))
+    fi
+  done
+  [ "$err" -gt 0 ] && \
+    _usage attach && return 1
+
+  _mock
 
   true > commands_log
 }
@@ -84,6 +102,7 @@ pill_playback
 pill_record
 pill_log
 pill_detach
+_mock
 _cli_to_comm
 _comm_to_file
 _create_new
@@ -98,49 +117,54 @@ _record"
   rm -f commands_log
 }
 
-for c in "${COMMANDS[@]}" ; do
-  # shellcheck disable=SC2016,SC1004
-  code="$c"'() {
-    local file comm
+# private functions.
 
-    comm="${FUNCNAME[0]}"
-    file=$(_comm_to_file "$comm")
+_mock() {
+  for c in "${COMMANDS[@]}" ; do
+    # shellcheck disable=SC2016,SC1004
+    code="$c"'() {
+      local file comm
 
-    if [ -z "$DATA_PATH" ] ; then
-      echo "DATA_PATH must be set. \
+      comm="${FUNCNAME[0]}"
+      file=$(_comm_to_file "$comm")
+
+      if [ -z "$DATA_PATH" ] ; then
+        echo "\
+DATA_PATH must be set. \
 Try pill_attach"
-      return 1
-    fi
+        return 1
+      fi
 
-    if [ -z "$PILL" ] ; then
-      echo "PILL must be set to \
+      if [ -z "$PILL" ] ; then
+        echo "\
+PILL must be set to \
 playback or record. Try pill_playback \
 or pill_record"
-      return 1
-    fi
+        return 1
+      fi
 
-    if [ ! -f "$file" -a "$PILL" == "playback" ] ; then
-      echo "$file not found. \
+      if { [ ! -f "$file" ] && [ "$PILL" == "playback" ] ; }; then
+        echo "\
+$file not found. \
 Make sure you firstly record it"
-      return 1
-    fi
+        return 1
+      fi
 
-    echo "$comm $*" | \
-      _filter >> commands_log
+      echo "$comm $*" | \
+        _filter >> commands_log
 
-    case "$PILL" in
-    "playback")
-      source "$file" "$@"
-      ;;
-    "record")
-      _record "$file" "$comm $*"
-      ;;
-    esac
-  }'
-  eval "$code"
-done
-
-# private functions.
+      case "$PILL" in
+      "playback")
+        source "$file" "$@"
+        ;;
+      "record")
+        _record "$file" "$comm $*"
+        ;;
+      esac
+    }'
+    eval "$code"
+  done
+}
 
 _cli_to_comm() {
   awk '{print $1}' <<< "$1"
@@ -148,6 +172,13 @@ _cli_to_comm() {
 
 _comm_to_file() {
   echo "$DATA_PATH"/"$1".sh
+}
+
+_filter() {
+  sed -E "
+    s/ +$//
+    s/ +'/'/
+    "
 }
 
 _record() {
@@ -199,14 +230,14 @@ _update_existing() {
   local comm f
   comm="$1" ; f=$(_comm_to_file "$comm")
   awk '
-    /^\*\)/ {exit}
-    {print}
+    $0 == "*)" {
+      exit
+    }
+    {
+      print
+    }
     ' "$f" > "$f.bak"
   mv "$f.bak" "$f"
-}
-
-_filter() {
-  sed "s/  *$//; s/  *'/'/"
 }
 
 # vim: ft=sh
