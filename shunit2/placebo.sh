@@ -16,7 +16,6 @@ tearDown() {
   rm -f \
     /tmp/aws \
     /tmp/curl \
-    shunit2/fixtures/test.sh \
     shunit2/fixtures/curl.sh \
     expected_content
 
@@ -201,7 +200,7 @@ testPillFunctionUsage() {
 Sets Placebo to playback mode" "$response"
 }
 
-functionUnderTest() {
+functionUnderTest1() {
   dir=/tmp/foo
   touch "$dir"
   response=$(ls -l "$dir")
@@ -210,22 +209,45 @@ functionUnderTest() {
 }
 
 testEndToEnd() {
+  response0="$(functionUnderTest1)"
+  echo "response #0 - no placebo: $response0"
+
   . placebo
   pill_attach "command=touch,ls,rm" "data_path=shunit2/fixtures"
   pill_record
-  response1=$(functionUnderTest)
-  echo "response #1: $response1"
+  response1="$(functionUnderTest1)"
+  echo "response #1 - placebo record: $response1"
   pill_detach
 
   . placebo
   pill_attach "command=touch,ls,rm" "data_path=shunit2/fixtures"
   pill_playback
-  response2=$(functionUnderTest)
-  echo "response #2: $response2"
+  response2="$(functionUnderTest1)"
+  echo "response #2 - placebo playback: $response2"
   pill_detach
+  assertEquals "end to end test returned different response in playback mode" "$response0" "$response1"
   assertEquals "end to end test returned different response in playback mode" "$response1" "$response2"
 
   command rm -f shunit2/fixtures/{touch,ls,rm}.sh
+}
+
+testExitStatusIsPreserved() {
+  . placebo
+  pill_attach "command=false" "data_path=shunit2/fixtures"
+  pill_record
+  false > /dev/null ; rc1="$?"
+  assertEquals "mocked false returns exit status that is not 1" "$rc1" "1"
+  pill_detach
+
+  . placebo
+  pill_attach "command=false" "data_path=shunit2/fixtures"
+  pill_playback
+  false > /dev/null ; rc2="$?"
+  assertEquals "false is not a function" "function" "$(type -t false)"
+  assertEquals "mocked false returns exit status that is not 1" "$rc2" "1"
+  pill_detach
+
+  command rm -f shunit2/fixtures/false.sh
 }
 
 . shunit2

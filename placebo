@@ -182,7 +182,7 @@ _filter() {
 }
 
 _record() {
-  local file cli comm
+  local file cli comm rc set_exit
   file="$1" ; cli="$2"
   comm=$(_cli_to_comm "$cli")
 
@@ -192,26 +192,29 @@ _record() {
     _create_new "$comm"
   fi
 
-  # capture the response data.
+  # capture the response data and save the exit status.
   # shellcheck disable=SC2086
-  response=$(command $cli) ; echo "$response"
+  response="$(command $cli)" ; rc="$?" ; echo "$response"
 
   lines=$(wc -l <<< "$response")
   if [ "$lines" -eq 1 ] ; then
 
     # Print case on one line if it's short.
+    set_exit=''
+    [ "$rc" -ne 0 ] && set_exit="; (exit $rc)"
+
     echo \
-      "'$cli') echo '$response' ;;" >> "$file"
+      "'$cli') echo '$(echo "$response" | _filter)'$set_exit ;;" >> "$file"
   else
 
     # ... or format as multiline (cat <<EOF ...) otherwise.
-    cat <<EOD | _filter >> "$file"
-'$cli')
+    set_exit=''
+    [ "$rc" -ne 0 ] && set_exit="\n  (exit $rc)"
+    printf "'$cli')
   cat <<'EOF'
 $response
-EOF
-  ;;
-EOD
+EOF$set_exit
+  ;;" | _filter >> "$file"
   fi
 
   # And close the case statement.
@@ -221,6 +224,8 @@ EOD
   ;;
 esac
 EOD
+
+  (exit "$rc")
 }
 
 _create_new() {
