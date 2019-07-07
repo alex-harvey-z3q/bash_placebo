@@ -200,33 +200,31 @@ testPillFunctionUsage() {
 Sets Placebo to playback mode" "$response"
 }
 
-functionUnderTest1() {
-  dir=/tmp/foo
-  touch "$dir"
+endToEndTestFunction() {
+  dir='/tmp/foo'
+  touch "$dir" > /dev/null # Known issue. Placebo causes stubbed commands that should generate no output to emit a single new line.
   response=$(ls -l "$dir")
   echo "$response"
-  rm -f "$dir"
+  rm -f "$dir" > /dev/null
 }
 
 testEndToEnd() {
-  response0="$(functionUnderTest1)"
-  echo "response #0 - no placebo: $response0"
+  response0="$(endToEndTestFunction)"
 
   . placebo
   pill_attach "command=touch,ls,rm" "data_path=shunit2/fixtures"
   pill_record
-  response1="$(functionUnderTest1)"
-  echo "response #1 - placebo record: $response1"
+  response1="$(endToEndTestFunction)"
   pill_detach
+
+  assertEquals "end to end test response in record mode differs from no placebo" "$response0" "$response1"
 
   . placebo
   pill_attach "command=touch,ls,rm" "data_path=shunit2/fixtures"
   pill_playback
-  response2="$(functionUnderTest1)"
-  echo "response #2 - placebo playback: $response2"
+  response2="$(endToEndTestFunction)"
   pill_detach
-  assertEquals "end to end test returned different response in playback mode" "$response0" "$response1"
-  assertEquals "end to end test returned different response in playback mode" "$response1" "$response2"
+  assertEquals "end to end test response in playback mode differs from record mode" "$response1" "$response2"
 
   command rm -f shunit2/fixtures/{touch,ls,rm}.sh
 }
@@ -236,7 +234,7 @@ testExitStatusIsPreserved() {
   pill_attach "command=false" "data_path=shunit2/fixtures"
   pill_record
   false > /dev/null ; rc1="$?"
-  assertEquals "mocked false returns exit status that is not 1" "$rc1" "1"
+  assertEquals "mocked false returns exit status that is not 1" "1" "$rc1"
   pill_detach
 
   . placebo
@@ -244,7 +242,7 @@ testExitStatusIsPreserved() {
   pill_playback
   false > /dev/null ; rc2="$?"
   assertEquals "false is not a function" "function" "$(type -t false)"
-  assertEquals "mocked false returns exit status that is not 1" "$rc2" "1"
+  assertEquals "mocked false returns exit status that is not 1" "1" "$rc2"
   pill_detach
 
   command rm -f shunit2/fixtures/false.sh

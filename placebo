@@ -114,12 +114,24 @@ _record"
   done
   unset PILL
   unset DATA_PATH
-  rm -f commands_log
+  command rm -f commands_log
 }
 
 # private functions.
 
+_comm_to_file() {
+  echo "$DATA_PATH"/"$1".sh
+}
+
+_filter() {
+  sed -E "
+    s/ +$//
+    s/ +'/'/
+    "
+}
+
 _mock() {
+  local c code
   for c in "${COMMANDS[@]}" ; do
     # shellcheck disable=SC2016,SC1004
     code="$c"'() {
@@ -170,21 +182,13 @@ _cli_to_comm() {
   awk '{print $1}' <<< "$1"
 }
 
-_comm_to_file() {
-  echo "$DATA_PATH"/"$1".sh
-}
-
-_filter() {
-  sed -E "
-    s/ +$//
-    s/ +'/'/
-    "
-}
-
 _record() {
-  local file cli comm rc set_exit
+  local file cli comm temp_file rc lines
+
   file="$1" ; cli="$2"
+
   comm=$(_cli_to_comm "$cli")
+  temp_file=/tmp/"$$"
 
   if [ -s "$file" ] ; then
     _update_existing "$comm"
@@ -192,38 +196,42 @@ _record() {
     _create_new "$comm"
   fi
 
-  # capture the response data and save the exit status.
+  # capture response data and exit status.
   # shellcheck disable=SC2086
-  response="$(command $cli)" ; rc="$?" ; echo "$response"
+  command $cli | tee -a "$temp_file" ; rc="${PIPESTATUS[0]}"
 
+  response=$(<"$temp_file")
   lines=$(wc -l <<< "$response")
+
   if [ "$lines" -eq 1 ] ; then
-
-    # Print case on one line if it's short.
-    set_exit=''
-    [ "$rc" -ne 0 ] && set_exit="; (exit $rc)"
-
-    echo \
-      "'$cli') echo '$(echo "$response" | _filter)'$set_exit ;;" >> "$file"
+    if [ "$rc" -eq 0 ] ; then
+      echo \
+        "'$cli') echo '$response' ;;"
+    else
+      echo \
+        "'$cli') echo '$response' ; (exit $rc) ;;"
+    fi
   else
-
-    # ... or format as multiline (cat <<EOF ...) otherwise.
-    set_exit=''
-    [ "$rc" -ne 0 ] && set_exit="\n  (exit $rc)"
-    printf "'$cli')
+    cat <<EOD
+'$cli')
   cat <<'EOF'
 $response
-EOF$set_exit
-  ;;" | _filter >> "$file"
-  fi
+EOF
+EOD
+    [ "$rc" -ne 0 ] && echo "  (exit $rc)"
+    echo "  ;;"
+  fi \
+    >> "$file"
 
-  # And close the case statement.
   cat >> "$file" <<EOD
 *)
-  echo "No responses for: $comm \$*" | tee -a unknown_commands
+  echo "No responses for: $comm \$*" | \
+tee -a unknown_commands
   ;;
 esac
 EOD
+
+  command rm -f "$temp_file"
 
   (exit "$rc")
 }
