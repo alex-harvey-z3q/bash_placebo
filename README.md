@@ -104,6 +104,8 @@ testCommandsLogged() {
 ## Known issues
 
 - Cannot build mocks where the same command is called multiple times but returns different responses.
+- If the output of a command that generates no output is mocked, the mocked version will return a single new line instead of no output.
+- STDERR is ignored at present.
 
 ## Contributing
 
