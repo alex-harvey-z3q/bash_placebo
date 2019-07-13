@@ -35,7 +35,7 @@ if [ "$1" == "-h" ] ; then
 fi
 
 pill_attach() {
-  local err _command _data_path
+  local err _command _data_path c
 
   [ "$1" == "-h" ] && \
     _usage attach && return
@@ -112,9 +112,7 @@ _record"
   for f in $funcs "${COMMANDS[@]}"; do
     unset -f "$f"
   done
-  unset PILL
-  unset DATA_PATH
-  unset COMMANDS
+  unset PILL DATA_PATH COMMANDS
   command rm -f commands_log
 }
 

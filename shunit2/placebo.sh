@@ -29,6 +29,20 @@ oneTimeTearDown() {
   git checkout shunit2/fixtures/aws.sh
 }
 
+testDetach() {
+  set | sed '
+    /^_=testDetach/d' > before
+  . placebo
+  pill_attach "command=aws,curl" "data_path=shunit2/fixtures"
+  pill_playback
+  pill_detach
+  set | sed '
+    /^_=/d
+    /^BASH_REMATCH=/d' > after
+  assertEquals "pill_detach is leaving variables or functions behind" "" "$(diff -wu before after)"
+  rm -f before after
+}
+
 testPlayback() {
   . placebo
   pill_attach "command=aws" "data_path=shunit2/fixtures"
@@ -165,31 +179,6 @@ testDataPathNotSet() {
 testExecutePlacebo() {
   response=$(bash placebo)
   assertTrue "Usage message not seen" "grep -q Usage <<< $response"
-}
-
-testDetach() {
-  funcs="_usage
-pill_attach
-pill_playback
-pill_record
-pill_log
-pill_detach
-_mock
-_cli_to_comm
-_comm_to_file
-_create_new
-_update_existing
-_filter
-_record"
-  . placebo
-  pill_detach
-  for f in $funcs ; do
-    assertFalse "function $f is still defined" "type $f"
-  done
-  assertTrue "[ -z $PILL ]"
-  assertTrue "[ -z $DATA_PATH ]"
-  assertFalse "[ -e commands_log ]"
-  . placebo
 }
 
 testMainUsage() {
