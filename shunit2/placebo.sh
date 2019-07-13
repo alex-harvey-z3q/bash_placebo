@@ -8,8 +8,8 @@ echo foo
 echo bar
 " > /tmp/curl ; chmod +x /tmp/curl
 
-  . placebo
-  PATH=/tmp:$PATH pill_attach "command=aws" "data_path=shunit2/fixtures"
+  PATH="/tmp:$PATH"
+  export PATH
 }
 
 tearDown() {
@@ -142,6 +142,7 @@ testDataPathIsNotADir() {
 
 testPillNotSet() {
   . placebo
+  pill_attach "command=aws" "data_path=shunit2/fixtures"
   response=$(aws ec2 run-instances)
   assertEquals \
     "PILL must be set to playback or record. Try pill_playback or pill_record" \
@@ -150,6 +151,7 @@ testPillNotSet() {
 
 testDataPathNotSet() {
   . placebo
+  pill_attach "command=aws" "data_path=shunit2/fixtures"
   pill_playback
   unset DATA_PATH # not sure why this line is required.
   response=$(aws ec2 run-instances)
