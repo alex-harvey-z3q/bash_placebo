@@ -206,31 +206,28 @@ _record() {
 
   if [ "$lines" -eq 1 ] ; then
     if [ "$rc" -eq 0 ] ; then
-      if [ -z "$response" ] ; then
-        echo \
-          "'$cli') true ;;"
-      else
-        echo \
-          "'$cli') echo '$response' ;;"
+      if [ -z "$response" ] ; then echo \
+ "'$cli') true ;;"
+      else echo \
+ "'$cli') echo '$response' ;;"
       fi
     else
-      if [ -z "$response" ] ; then
-        echo \
-          "'$cli') (exit $rc) ;;"
-      else
-        echo \
-          "'$cli') echo '$response' ; (exit $rc) ;;"
+      if [ -z "$response" ] ; then echo \
+ "'$cli') (exit $rc) ;;"
+      else echo \
+ "'$cli') echo '$response' ; (exit $rc) ;;"
       fi
     fi
-  elif [ "$lines" -gt 1 ] ; then
-    cat <<EOD
-'$cli')
+  elif [ "$lines" -gt 1 ] ; then echo \
+ "'$cli')
   cat <<'EOF'
 $response
 EOF
-EOD
-    [ "$rc" -ne 0 ] && echo "  (exit $rc)"
-    echo "  ;;"
+"
+    [ "$rc" -ne 0 ] && echo \
+ "  (exit $rc)"
+    echo \
+ "  ;;"
   fi \
     >> "$file"
 
