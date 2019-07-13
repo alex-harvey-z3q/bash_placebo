@@ -184,14 +184,12 @@ _cli_to_comm() {
 }
 
 _record() {
-  local file cli comm stdout stderr input_from rc lines
+  local file cli comm temp_file rc lines
 
   file="$1" ; cli="$2"
 
   comm=$(_cli_to_comm "$cli")
-
-  stdout="/tmp/stdout.$$"
-  stderr="/tmp/stderr.$$"
+  temp_file=/tmp/"$$"
 
   if [ -s "$file" ] ; then
     _update_existing "$comm"
@@ -201,36 +199,33 @@ _record() {
 
   # capture response data and exit status.
   # shellcheck disable=SC2086
-  command $cli > >(tee "$stdout") 2> >(tee "$stderr" >&2) ; rc="$?"
-  touch "$stdout" "$stderr"
+  command $cli | tee -a "$temp_file" ; rc="${PIPESTATUS[0]}"
 
-  response=$(<"$stdout") ; redirect=''
-  [ -z "$response" ] && { response=$(<"$stderr") ; redirect='>&2 ' ; }
-
+  response=$(<"$temp_file")
   lines=$(wc -l <<< "$response")
 
   if [ "$lines" -eq 1 ] ; then
     if [ "$rc" -eq 0 ] ; then
       if [ -z "$response" ] ; then
         echo \
- "'$cli') true ;;"
+          "'$cli') true ;;"
       else
         echo \
- "'$cli') echo '$response' $redirect;;"
+          "'$cli') echo '$response' ;;"
       fi
     else
       if [ -z "$response" ] ; then
         echo \
- "'$cli') (exit $rc) ;;"
+          "'$cli') (exit $rc) ;;"
       else
         echo \
- "'$cli') echo '$response' $redirect; (exit $rc) ;;"
+          "'$cli') echo '$response' ; (exit $rc) ;;"
       fi
     fi
   elif [ "$lines" -gt 1 ] ; then
     cat <<EOD
 '$cli')
-  cat $redirect<<'EOF'
+  cat <<'EOF'
 $response
 EOF
 EOD
@@ -247,7 +242,7 @@ tee -a unknown_commands
 esac
 EOD
 
-  command rm -f "$stdout" "$stderr"
+  command rm -f "$temp_file"
 
   (exit "$rc")
 }
