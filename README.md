@@ -106,6 +106,7 @@ testCommandsLogged() {
 - Cannot build mocks where the same command is called multiple times but returns different responses.
 - A command that emits a single newline of output will be confused with a program that emits no output (see unit test `testDemonstrateEchoBug`).
 - STDERR is ignored at present.
+- Only can stub external commands and not functions.
 
 ## Contributing
 
