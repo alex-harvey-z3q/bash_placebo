@@ -114,6 +114,7 @@ _record"
   done
   unset PILL
   unset DATA_PATH
+  unset COMMANDS
   command rm -f commands_log
 }
 
