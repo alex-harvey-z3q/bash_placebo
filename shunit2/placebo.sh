@@ -141,14 +141,6 @@ EOD
   PATH=$OLDPATH
 }
 
-testNonexistentCommands() {
-  . placebo
-  response=$(pill_attach "command=aws,curl,foobarbaz" "data_path=shunit2/fixtures" | head -1)
-  assertEquals \
-    "command 'foobarbaz' not found" \
-    "$response"
-}
-
 testDataPathIsNotADir() {
   . placebo
   response=$(pill_attach "command=aws" "data_path=shunit2/fixtures/aws.sh" | head -1)
