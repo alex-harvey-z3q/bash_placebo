@@ -7,6 +7,9 @@ echo foo
   echo "#!/usr/bin/env bash
 echo bar
 " > /tmp/curl ; chmod +x /tmp/curl
+  echo "#!/usr/bin/env bash
+echo
+" > /tmp/baz ; chmod +x /tmp/baz
 
   PATH="/tmp:$PATH"
   export PATH
@@ -204,10 +207,10 @@ Sets Placebo to playback mode" "$response"
 
 endToEndTestFunction() {
   dir='/tmp/foo'
-  touch "$dir" > /dev/null # Known issue. Placebo causes stubbed commands that should generate no output to emit a single new line.
+  touch "$dir"
   response=$(ls -l "$dir")
   echo "$response"
-  rm -f "$dir" > /dev/null
+  rm -f "$dir"
 }
 
 testEndToEnd() {
@@ -235,19 +238,36 @@ testExitStatusIsPreserved() {
   . placebo
   pill_attach "command=false" "data_path=shunit2/fixtures"
   pill_record
-  false > /dev/null ; rc1="$?"
+  false ; rc1="$?"
   assertEquals "mocked false returns exit status that is not 1" "1" "$rc1"
   pill_detach
 
   . placebo
   pill_attach "command=false" "data_path=shunit2/fixtures"
   pill_playback
-  false > /dev/null ; rc2="$?"
+  false ; rc2="$?"
   assertEquals "false is not a function" "function" "$(type -t false)"
   assertEquals "mocked false returns exit status that is not 1" "1" "$rc2"
   pill_detach
 
   command rm -f shunit2/fixtures/false.sh
+}
+
+testDemonstrateEchoBug() {
+  response0="$(baz)"
+
+  . placebo
+  pill_attach "command=baz" "data_path=shunit2/fixtures"
+  pill_record
+  pill_detach
+
+  . placebo
+  pill_attach "command=baz" "data_path=shunit2/fixtures"
+  pill_playback
+  response1="$(baz)"
+  pill_detach
+
+  assertNotEquals "failed to demonstrate bug - is it fixed?" "$response0" "$response1"
 }
 
 . shunit2

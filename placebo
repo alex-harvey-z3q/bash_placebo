@@ -205,13 +205,23 @@ _record() {
 
   if [ "$lines" -eq 1 ] ; then
     if [ "$rc" -eq 0 ] ; then
-      echo \
-        "'$cli') echo '$response' ;;"
+      if [ -z "$response" ] ; then
+        echo \
+          "'$cli') true ;;"
+      else
+        echo \
+          "'$cli') echo '$response' ;;"
+      fi
     else
-      echo \
-        "'$cli') echo '$response' ; (exit $rc) ;;"
+      if [ -z "$response" ] ; then
+        echo \
+          "'$cli') (exit $rc) ;;"
+      else
+        echo \
+          "'$cli') echo '$response' ; (exit $rc) ;;"
+      fi
     fi
-  else
+  elif [ "$lines" -gt 1 ] ; then
     cat <<EOD
 '$cli')
   cat <<'EOF'
