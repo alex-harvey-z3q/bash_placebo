@@ -84,10 +84,11 @@ pill_log() {
 }
 
 pill_detach() {
+  local f funcs
+
   [ "$1" == "-h" ] && \
     _usage detach && return
 
-  local f funcs
   funcs="_usage
 pill_attach
 pill_playback
@@ -146,7 +147,8 @@ or pill_record"
         return 1
       fi
 
-      if { [ ! -f "$file" ] && [ "$PILL" == "playback" ] ; }; then
+      if { [ ! -f "$file" ] && \
+    [ "$PILL" == "playback" ] ; }; then
         echo "\
 $file not found. \
 Make sure you firstly record it"
@@ -237,8 +239,7 @@ EOD
 _create_new() {
   local comm f
   comm="$1" ; f=$(_comm_to_file "$comm")
-  # shellcheck disable=SC2086
-  echo 'case "'$comm' $*" in' > "$f"
+  echo 'case "'"$comm"' $*" in' > "$f"
 }
 
 _update_existing() {

@@ -19,10 +19,11 @@ tearDown() {
   rm -f \
     /tmp/aws \
     /tmp/curl \
+    /tmp/baz \
     shunit2/fixtures/curl.sh \
     expected_content
 
-  type -t pill_detach > /dev/null && pill_detach ; true
+  pill_detach 2> /dev/null ; true
 }
 
 oneTimeTearDown() {
@@ -48,16 +49,19 @@ testPlayback() {
   pill_attach "command=aws" "data_path=shunit2/fixtures"
   pill_playback
   response=$(aws autoscaling describe-auto-scaling-groups)
-  assertEquals "response" "$response"
+  assertEquals "mocked aws command returned unexpected response ($response)" \
+    "response" "$response"
 }
 
 testRecord() {
+  local OLDPATH command_to_run
+
   . placebo
   pill_attach "command=aws" "data_path=shunit2/fixtures"
   pill_record
 
-  OLDPATH=$PATH
-  PATH=/tmp:$PATH
+  OLDPATH="$PATH"
+  PATH=/tmp:"$PATH"
 
   command_to_run="aws ec2 run-instances --image-id foo"
   $command_to_run > /dev/null
@@ -75,15 +79,18 @@ EOF
 esac
 EOD
 
-  assertEquals "" "$(diff -wu expected_content "$DATA_PATH"/aws.sh)"
-  # shellcheck disable=SC2086
-  assertEquals "foo" "$(bash /tmp/$command_to_run)"
-  assertEquals "$command_to_run" "$(pill_log)"
+  assertEquals "generated mock contains unexpected content" \
+    "" "$(diff -wu expected_content "$DATA_PATH"/aws.sh)"
 
-  PATH=$OLDPATH
+  assertEquals "pill_log returns unexpected content ($(pill_log))" \
+    "$command_to_run" "$(pill_log)"
+
+  PATH="$OLDPATH"
 }
 
 testRecordShortCommand() {
+  local OLDPATH command_to_run
+
   . placebo
   pill_attach "command=aws" "data_path=shunit2/fixtures"
   pill_record
@@ -108,9 +115,10 @@ EOF
 esac
 EOD
 
-  assertEquals "" "$(diff -wu expected_content "$DATA_PATH"/aws.sh)"
+  assertEquals "generated mock contains unexpected content" \
+    "" "$(diff -wu expected_content "$DATA_PATH"/aws.sh)"
 
-  PATH=$OLDPATH
+  PATH="$OLDPATH"
 }
 
 testRecordMultipleCommands() {
@@ -118,8 +126,8 @@ testRecordMultipleCommands() {
   pill_attach "command=aws,curl" "data_path=shunit2/fixtures"
   pill_record
 
-  OLDPATH=$PATH
-  PATH=/tmp:$PATH
+  OLDPATH="$PATH"
+  PATH="/tmp:$PATH"
 
   command_to_run="curl https://foo/bar/baz"
   $command_to_run > /dev/null
@@ -132,11 +140,14 @@ case "curl \$*" in
 esac
 EOD
 
-  assertEquals "command 1 is not curl but '${COMMANDS[1]}'" "curl" "${COMMANDS[1]}"
-  assertEquals "" "$(diff -wu expected_content "$DATA_PATH"/curl.sh)"
-  # shellcheck disable=SC2086
-  assertEquals "bar" "$(bash /tmp/$command_to_run)"
-  assertEquals "$command_to_run" "$(pill_log)"
+  assertEquals "command 1 is not curl (but is '${COMMANDS[1]}')" \
+    "curl" "${COMMANDS[1]}"
+
+  assertEquals "generated mock contains unexpected content" \
+    "" "$(diff -wu expected_content "$DATA_PATH"/curl.sh)"
+
+  assertEquals "pill_log returns unexpected content ($(pill_log))" \
+    "$command_to_run" "$(pill_log)"
 
   PATH=$OLDPATH
 }
@@ -144,7 +155,7 @@ EOD
 testDataPathIsNotADir() {
   . placebo
   response=$(pill_attach "command=aws" "data_path=shunit2/fixtures/aws.sh" | head -1)
-  assertEquals \
+  assertEquals "unexpected error emitted when DATA_PATH is not a directory" \
     "DATA_PATH should be a directory" \
     "$response"
 }
@@ -153,7 +164,7 @@ testPillNotSet() {
   . placebo
   pill_attach "command=aws" "data_path=shunit2/fixtures"
   response=$(aws ec2 run-instances)
-  assertEquals \
+  assertEquals "unexpected error emitted when PILL is not set" \
     "PILL must be set to playback or record. Try pill_playback or pill_record" \
     "$response"
 }
@@ -162,7 +173,7 @@ testDataPathNotSet() {
   . placebo
   pill_attach "command=aws" "data_path=shunit2/fixtures"
   pill_playback
-  unset DATA_PATH # not sure why this line is required.
+  unset DATA_PATH
   response=$(aws ec2 run-instances)
   assertEquals \
     "DATA_PATH must be set. Try pill_attach" "$response"
@@ -175,19 +186,21 @@ testExecutePlacebo() {
 
 testMainUsage() {
   response=$(. placebo -h)
-  assertEquals "Usage: . shunit2/placebo.sh [-h]" "$response"
+  assertEquals "unexpected usage message seen during placebo -h" \
+    "Usage: . shunit2/placebo.sh [-h]" "$response"
   . placebo
 }
 
 testPillFunctionUsage() {
   . placebo
   response=$(pill_playback -h)
-  assertEquals "Usage: pill_playback [-h]
+  assertEquals "unexpected usage message seen during pill_playback -h" \
+    "Usage: pill_playback [-h]
 Sets Placebo to playback mode" "$response"
 }
 
 endToEndTestFunction() {
-  dir='/tmp/foo'
+  dir="/tmp/foo"
   touch "$dir"
   response=$(ls -l "$dir")
   echo "$response"
