@@ -65,6 +65,7 @@ pill_attach() {
 pill_playback() {
   [ "$1" == "-h" ] && \
     _usage playback && return
+  # shellcheck disable=SC2034
   PILL=playback
 }
 

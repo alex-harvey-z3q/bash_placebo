@@ -3,10 +3,10 @@
 
 # shellcheck tests
 #
-scripts = placebo
+scripts = placebo shunit2/placebo.sh
 check:
 	for i in $(scripts) ; do \
-		shellcheck --exclude=SC1090 $$i ; \
+		shellcheck --exclude=SC1090,SC1091 $$i ; \
 		done
 
 # unit tests
